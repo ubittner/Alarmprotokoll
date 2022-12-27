@@ -1,0 +1,14 @@
+{
+    "id": "{66BDB59B-E80F-E837-6640-005C32D5FC24}",
+    "name": "Alarmprotokoll",
+    "type": 3,
+    "vendor": "UB",
+    "aliases": [
+        "Alarmprotokoll"
+    ],
+    "url": "https://github.com/ubittner/Alarmprotokoll/tree/main/Alarmprotokoll",
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "AP"
+}
