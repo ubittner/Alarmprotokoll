@@ -8,8 +8,7 @@
  * @license       https://creativecommons.org/licenses/by-nc-sa/4.0/ CC BY-NC-SA 4.0
  */
 
-/** @noinspection PhpUndefinedFunctionInspection */
-/** @noinspection PhpUnused */
+/** @noinspection PhpExpressionResultUnusedInspection */
 
 declare(strict_types=1);
 
@@ -41,11 +40,11 @@ trait AP_Protocol
             $this->SendDebug(__FUNCTION__, 'Abbruch, Monatsprotokoll ist nicht aktiviert!', 0);
             return;
         }
-        $mailer = $this->ReadPropertyInteger('MonthlyMailer');
-        if ($mailer > 1 && @IPS_ObjectExists($mailer)) { //0 = main category, 1 = none
-            //Check if it is the first day of the month
+        $monthlySMTP = $this->ReadPropertyInteger('MonthlySMTP');
+        if ($monthlySMTP > 1 && @IPS_ObjectExists($monthlySMTP)) { //0 = main category, 1 = none
+            //Check if it is the correct day of the month
             $day = date('j');
-            if ($day == '1' || !$CheckDay) {
+            if ($day == $this->ReadPropertyInteger('MonthlyProtocolDay') || !$CheckDay) {
                 //Prepare data
                 $archive = $this->ReadPropertyInteger('Archive');
                 if ($archive != 0) {
@@ -60,18 +59,18 @@ trait AP_Protocol
                     $designation = $this->ReadPropertyString('Designation');
                     $month = date('n', $startTime);
                     $monthName = [
-                        1           => 'Januar',
-                        2           => 'Februar',
-                        3           => 'März',
-                        4           => 'April',
-                        5           => 'Mai',
-                        6           => 'Juni',
-                        7           => 'Juli',
-                        8           => 'August',
-                        9           => 'September',
-                        10          => 'Oktober',
-                        11          => 'November',
-                        12          => 'Dezember'];
+                        1  => 'Januar',
+                        2  => 'Februar',
+                        3  => 'März',
+                        4  => 'April',
+                        5  => 'Mai',
+                        6  => 'Juni',
+                        7  => 'Juli',
+                        8  => 'August',
+                        9  => 'September',
+                        10 => 'Oktober',
+                        11 => 'November',
+                        12 => 'Dezember'];
                     $year = date('Y', $startTime);
                     $text = 'Monatsprotokoll ' . $monthName[$month] . ' ' . $year . ', ' . $designation . ":\n\n\n";
                     $messages = AC_GetLoggedValues($archive, $this->GetIDForIdent('MessageArchive'), $startTime, $endTime, 0);
@@ -84,11 +83,21 @@ trait AP_Protocol
                     }
                     //Send mail
                     $mailSubject = $this->ReadPropertyString('MonthlyProtocolSubject') . ' ' . $monthName[$month] . ' ' . $year . ', ' . $designation;
-                    @MA_SendMessage($mailer, $mailSubject, $text);
+                    $recipients = json_decode($this->ReadPropertyString('MonthlyRecipientList'), true);
+                    foreach ($recipients as $recipient) {
+                        if ($recipient['Use']) {
+                            $address = $recipient['Address'];
+                            if (strlen($address) >= 6) {
+                                @SMTP_SendMailEx($monthlySMTP, $recipient['Address'], $mailSubject, $text);
+                            } else {
+                                $this->SendDebug(__FUNCTION__, 'Abbruch, E-Mail Adresse hat weniger als 6 Zeichen!', 0);
+                            }
+                        }
+                    }
                 }
             }
         }
-        $this->SetTimerSendMonthlyProtocol();
+        $this->SetTimerInterval('SendMonthlyProtocol', $this->GetInterval('SendMonthlyProtocol'));
     }
 
     /**
@@ -107,8 +116,8 @@ trait AP_Protocol
             $this->SendDebug(__FUNCTION__, 'Abbruch, Archivprotokoll ist nicht aktiviert!', 0);
             return;
         }
-        $mailer = $this->ReadPropertyInteger('ArchiveMailer');
-        if ($mailer > 1 && @IPS_ObjectExists($mailer)) { //0 = main category, 1 = none
+        $archiveSMTP = $this->ReadPropertyInteger('ArchiveSMTP');
+        if ($archiveSMTP > 1 && @IPS_ObjectExists($archiveSMTP)) { //0 = main category, 1 = none
             //Prepare data
             //Set start time to 2000-01-01 12:00 am
             $startTime = 946684800;
@@ -125,35 +134,17 @@ trait AP_Protocol
             }
             //Send mail
             $mailSubject = $this->ReadPropertyString('ArchiveProtocolSubject') . ' ' . $designation;
-            @MA_SendMessage($mailer, $mailSubject, $text);
-        }
-    }
-
-    #################### Private
-
-    /**
-     * Sets the timer for the monthly protocol to send via mail.
-     *
-     * @return void
-     * @throws Exception
-     */
-    private function SetTimerSendMonthlyProtocol(): void
-    {
-        $this->SendDebug(__FUNCTION__, 'wird ausgeführt', 0);
-        $archiveRetentionTime = $this->ReadPropertyInteger('ArchiveRetentionTime');
-        if ($archiveRetentionTime > 0) {
-            //Set timer for monthly journal
-            $instanceStatus = @IPS_GetInstance($this->InstanceID)['InstanceStatus'];
-            if ($this->ReadPropertyInteger('Archive') != 0 && $instanceStatus == 102) {
-                //Set timer to next date
-                $timestamp = strtotime('next day noon');
-                $now = time();
-                $interval = ($timestamp - $now) * 1000;
-                $this->SetTimerInterval('SendMonthlyProtocol', $interval);
+            $recipients = json_decode($this->ReadPropertyString('ArchiveRecipientList'), true);
+            foreach ($recipients as $recipient) {
+                if ($recipient['Use']) {
+                    $address = $recipient['Address'];
+                    if (strlen($address) >= 6) {
+                        @SMTP_SendMailEx($archiveSMTP, $recipient['Address'], $mailSubject, $text);
+                    } else {
+                        $this->SendDebug(__FUNCTION__, 'Abbruch, E-Mail Adresse hat weniger als 6 Zeichen!', 0);
+                    }
+                }
             }
-        }
-        if ($archiveRetentionTime <= 0) {
-            $this->SetTimerInterval('SendMonthlyProtocol', 0);
         }
     }
 }

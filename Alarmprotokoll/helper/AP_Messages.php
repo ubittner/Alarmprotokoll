@@ -228,9 +228,7 @@ trait AP_Messages
             default:
                 $name = 'Alarmmeldungen';
         }
-        $id = $this->GetIDForIdent('AlarmMessages');
-        IPS_SetName($id, $name);
-        IPS_SetHidden($id, !$this->ReadPropertyBoolean('EnableAlarmMessages'));
+        IPS_SetName($this->GetIDForIdent('AlarmMessages'), $name);
 
         //Rename state messages
         $amountStateMessages = $this->ReadPropertyInteger('AmountStateMessages');
@@ -251,9 +249,7 @@ trait AP_Messages
             default:
                 $name = 'Zustandsmeldung(en)';
         }
-        $id = $this->GetIDForIdent('StateMessages');
-        IPS_SetName($id, $name);
-        IPS_SetHidden($id, !$this->ReadPropertyBoolean('EnableStateMessages'));
+        IPS_SetName($this->GetIDForIdent('StateMessages'), $name);
 
         //Rename event messages
         $eventMessagesRetentionTime = $this->ReadPropertyInteger('EventMessagesRetentionTime');
@@ -274,9 +270,7 @@ trait AP_Messages
             default:
                 $name = 'Ereignismeldungen';
         }
-        $id = $this->GetIDForIdent('EventMessages');
-        IPS_SetName($id, $name);
-        IPS_SetHidden($id, !$this->ReadPropertyBoolean('EnableEventMessages'));
+        IPS_SetName($this->GetIDForIdent('EventMessages'), $name);
 
         //Rename message archive
         $archiveRetentionTime = $this->ReadPropertyInteger('ArchiveRetentionTime');
