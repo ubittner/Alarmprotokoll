@@ -97,7 +97,7 @@ trait AP_Protocol
                 }
             }
         }
-        $this->SetTimerInterval('SendMonthlyProtocol', $this->GetInterval('SendMonthlyProtocol'));
+        $this->SetTimerInterval('SendMonthlyProtocol', $this->GetInterval('MonthlyProtocolTime'));
     }
 
     /**
