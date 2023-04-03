@@ -125,9 +125,12 @@ trait AP_Protocol
             $designation = $this->ReadPropertyString('Designation');
             $text = 'Archivprotokoll' . ' ' . $designation . ":\n\n\n";
             $messages = AC_GetLoggedValues($this->ReadPropertyInteger('Archive'), $this->GetIDForIdent('MessageArchive'), $startTime, $endTime, 0);
+            $content = true;
             if (empty($messages)) {
+                $content = false;
                 $text .= 'Es sind keine Ereignisse vorhanden.';
-            } else {
+            }
+            if ($content) {
                 foreach ($messages as $message) {
                     $text .= $message['Value'] . "\n";
                 }
