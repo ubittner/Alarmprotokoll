@@ -94,74 +94,6 @@ trait AP_Config
             ]
         ];
 
-        ##### Element: Designation
-
-        $form['elements'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Bezeichnung',
-            'items'   => [
-                [
-                    'type'    => 'ValidationTextBox',
-                    'name'    => 'Designation',
-                    'caption' => 'Bezeichnung (z.B. Standortbezeichnung)',
-                    'width'   => '600px'
-                ]
-            ]
-        ];
-
-        ##### Element: Messages
-
-        $form['elements'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Meldungen',
-            'items'   => [
-                [
-                    'type'    => 'Label',
-                    'caption' => 'Alarmmeldungen',
-                    'bold'    => true,
-                    'italic'  => true
-                ],
-                [
-                    'type'    => 'NumberSpinner',
-                    'name'    => 'AlarmMessagesRetentionTime',
-                    'caption' => 'Anzeigedauer',
-                    'suffix'  => 'Tage'
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => ' '
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => 'Statusmeldungen',
-                    'bold'    => true,
-                    'italic'  => true
-                ],
-                [
-                    'type'    => 'NumberSpinner',
-                    'name'    => 'AmountStateMessages',
-                    'caption' => 'Anzeige',
-                    'suffix'  => 'Meldungen'
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => ' '
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => 'Ereignismeldungen',
-                    'bold'    => true,
-                    'italic'  => true
-                ],
-                [
-                    'type'    => 'NumberSpinner',
-                    'name'    => 'EventMessagesRetentionTime',
-                    'caption' => 'Anzeigedauer',
-                    'suffix'  => 'Tage'
-                ],
-            ]
-        ];
-
         ##### Element: Archive
 
         $id = $this->ReadPropertyInteger('Archive');
@@ -228,7 +160,11 @@ trait AP_Config
                 ],
                 [
                     'type'    => 'Label',
-                    'caption' => 'Status:',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Status',
                     'bold'    => true,
                     'italic'  => true
                 ],
@@ -267,6 +203,12 @@ trait AP_Config
             'type'    => 'ExpansionPanel',
             'caption' => 'Monatsprotokoll',
             'items'   => [
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Ausführung',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
                 [
                     'type'    => 'CheckBox',
                     'name'    => 'UseMonthlyProtocol',
@@ -409,6 +351,38 @@ trait AP_Config
                     'caption' => 'Versenden um'
                 ],
                 [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'PDF-Dokument',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
+                [
+                    'name'       => 'LogoData',
+                    'type'       => 'SelectFile',
+                    'caption'    => 'Logo',
+                    'extensions' => '.png'
+                ],
+                [
+                    'type'    => 'ValidationTextBox',
+                    'name'    => 'Designation',
+                    'caption' => 'Standortbezeichnung (z.B. Musterstraße 1)',
+                    'width'   => '600px'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'E-Mail',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
+                [
                     'type'  => 'RowLayout',
                     'items' => [
                         [
@@ -440,7 +414,14 @@ trait AP_Config
                 [
                     'type'    => 'ValidationTextBox',
                     'name'    => 'MonthlyProtocolSubject',
-                    'caption' => 'Betreff'
+                    'caption' => 'Betreff',
+                    'width'   => '600px'
+                ],
+                [
+                    'type'    => 'ValidationTextBox',
+                    'name'    => 'MonthlyProtocolText',
+                    'caption' => 'Text',
+                    'width'   => '600px'
                 ],
                 [
                     'type'     => 'List',
@@ -482,113 +463,6 @@ trait AP_Config
             ]
         ];
 
-        ##### Element: Archive protocol
-
-        //Archive SMTP
-        $archiveSMTP = $this->ReadPropertyInteger('ArchiveSMTP');
-        $enabled = false;
-        if ($archiveSMTP > 1 && @IPS_ObjectExists($archiveSMTP)) { //0 = main category, 1 = none
-            $enabled = true;
-        }
-
-        //Archive recipient list
-        $archiveRecipientValues = [];
-        $recipients = json_decode($this->ReadPropertyString('ArchiveRecipientList'), true);
-        foreach ($recipients as $recipient) {
-            $rowColor = '#C0FFC0'; //light green
-            if (!$recipient['Use']) {
-                $rowColor = '#DFDFDF'; //grey
-            }
-            $address = $recipient['Address'];
-            if (empty($address) || strlen($address) < 6) {
-                $rowColor = '#FFC0C0'; //red
-            }
-            $archiveRecipientValues[] = ['rowColor' => $rowColor];
-        }
-
-        $form['elements'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Archivprotokoll',
-            'items'   => [
-                [
-                    'type'    => 'CheckBox',
-                    'name'    => 'UseArchiveProtocol',
-                    'caption' => 'Archivprotokoll'
-                ],
-                [
-                    'type'  => 'RowLayout',
-                    'items' => [
-                        [
-                            'type'     => 'SelectModule',
-                            'name'     => 'ArchiveSMTP',
-                            'caption'  => 'SMTP Instanz',
-                            'moduleID' => self::SMTP_MODULE_GUID,
-                            'width'    => '600px',
-                            'onChange' => self::MODULE_PREFIX . '_ModifyButton($id, "ArchiveSMTPConfigurationButton", "ID " . $ArchiveSMTP . " Instanzkonfiguration", $ArchiveSMTP);'
-                        ],
-                        [
-                            'type'    => 'Button',
-                            'caption' => 'Neue Instanz erstellen',
-                            'onClick' => self::MODULE_PREFIX . '_CreateSMTPInstance($id);'
-                        ],
-                        [
-                            'type'    => 'Label',
-                            'caption' => ' '
-                        ],
-                        [
-                            'type'     => 'OpenObjectButton',
-                            'caption'  => 'ID ' . $archiveSMTP . ' Instanzkonfiguration',
-                            'name'     => 'ArchiveSMTPConfigurationButton',
-                            'visible'  => $enabled,
-                            'objectID' => $archiveSMTP
-                        ]
-                    ]
-                ],
-                [
-                    'type'    => 'ValidationTextBox',
-                    'name'    => 'ArchiveProtocolSubject',
-                    'caption' => 'Betreff'
-                ],
-                [
-                    'type'     => 'List',
-                    'name'     => 'ArchiveRecipientList',
-                    'rowCount' => 5,
-                    'add'      => true,
-                    'delete'   => true,
-                    'columns'  => [
-                        [
-                            'caption' => 'Aktiviert',
-                            'name'    => 'Use',
-                            'width'   => '100px',
-                            'add'     => true,
-                            'edit'    => [
-                                'type' => 'CheckBox'
-                            ]
-                        ],
-                        [
-                            'caption' => 'Empfänger',
-                            'name'    => 'Name',
-                            'width'   => '350px',
-                            'add'     => '',
-                            'edit'    => [
-                                'type' => 'ValidationTextBox'
-                            ]
-                        ],
-                        [
-                            'caption' => 'E-Mail Adresse',
-                            'name'    => 'Address',
-                            'width'   => '400px',
-                            'add'     => '@',
-                            'edit'    => [
-                                'type' => 'ValidationTextBox'
-                            ]
-                        ]
-                    ],
-                    'values' => $archiveRecipientValues
-                ]
-            ]
-        ];
-
         ##### Element: Visualisation
 
         $form['elements'][] = [
@@ -607,9 +481,29 @@ trait AP_Config
                     'italic'  => true
                 ],
                 [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Aktiv',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
+                [
                     'type'    => 'CheckBox',
                     'name'    => 'EnableActive',
                     'caption' => 'Aktiv'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Alarmmeldungen',
+                    'bold'    => true,
+                    'italic'  => true
                 ],
                 [
                     'type'    => 'CheckBox',
@@ -617,14 +511,52 @@ trait AP_Config
                     'caption' => 'Alarmmeldungen'
                 ],
                 [
+                    'type'    => 'NumberSpinner',
+                    'name'    => 'AlarmMessagesRetentionTime',
+                    'caption' => 'Anzeigedauer',
+                    'suffix'  => 'Tage'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Zustandsmeldungen',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
+                [
                     'type'    => 'CheckBox',
                     'name'    => 'EnableStateMessages',
                     'caption' => 'Zustandsmeldungen'
                 ],
                 [
+                    'type'    => 'NumberSpinner',
+                    'name'    => 'AmountStateMessages',
+                    'caption' => 'Anzeige',
+                    'suffix'  => 'Meldungen'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Ereignismeldungen',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
+                [
                     'type'    => 'CheckBox',
                     'name'    => 'EnableEventMessages',
                     'caption' => 'Ereignismeldungen'
+                ],
+                [
+                    'type'    => 'NumberSpinner',
+                    'name'    => 'EventMessagesRetentionTime',
+                    'caption' => 'Anzeigedauer',
+                    'suffix'  => 'Tage'
                 ]
             ]
         ];
@@ -735,22 +667,36 @@ trait AP_Config
         //Protocols
         $form['actions'][] = [
             'type'    => 'ExpansionPanel',
-            'caption' => 'Protokolle',
+            'caption' => 'Monatsprotokoll',
             'items'   => [
                 [
-                    'type'    => 'Button',
-                    'caption' => 'Protokoll Vormonat versenden',
-                    'onClick' => self::MODULE_PREFIX . '_SendMonthlyProtocol($id, false, 1); echo "Protokollversand wurde ausgelöst!";'
+                    'type'  => 'RowLayout',
+                    'items' => [
+                        [
+                            'type'    => 'SelectDate',
+                            'name'    => 'StartDate',
+                            'caption' => 'Datum von'
+                        ],
+                        [
+                            'type'    => 'SelectDate',
+                            'name'    => 'EndDate',
+                            'caption' => 'Datum bis'
+                        ],
+                        [
+                            'type'    => 'Label',
+                            'caption' => ' '
+                        ],
+                        [
+                            'type'    => 'Button',
+                            'caption' => 'PDF-Dokument erstellen',
+                            'onClick' => self::MODULE_PREFIX . '_GenerateCustomReport($id, $StartDate, $EndDate); echo "PDF-Dokument wurde erstellt!";'
+                        ]
+                    ]
                 ],
                 [
                     'type'    => 'Button',
-                    'caption' => 'Protokoll Aktueller Monat versenden',
-                    'onClick' => self::MODULE_PREFIX . '_SendMonthlyProtocol($id, false, 0); echo "Protokollversand wurde ausgelöst!";'
-                ],
-                [
-                    'type'    => 'Button',
-                    'caption' => 'Archivprotokoll versenden',
-                    'onClick' => self::MODULE_PREFIX . '_SendArchiveProtocol($id); echo "Archivprotokollversand wurde ausgelöst!";'
+                    'caption' => 'PDF-Dokument versenden',
+                    'onClick' => self::MODULE_PREFIX . '_SendReport($id); echo "PDF-Dokument wurde versendet!";'
                 ]
             ]
         ];
