@@ -1,7 +1,5 @@
 .DS_Store
 .idea/
-libs/vendor/tecnickcom/tcpdf/fonts
-composer.phar
 .phpunit.*
 .php_cs.cache
 dev/
