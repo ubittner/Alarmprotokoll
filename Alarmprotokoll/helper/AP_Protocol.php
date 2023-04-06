@@ -197,7 +197,7 @@ trait AP_Protocol
             IPS_SetName($mid, $Name);
             IPS_SetPosition($mid, $Position);
             IPS_SetHidden($mid, true);
-            $result = IPS_SetMediaFile($mid, 'media/Alarmprotokoll(ID' . $mid . ').' . $Extension, false);
+            $result = IPS_SetMediaFile($mid, 'media/Alarmprotokoll_(ID ' . $mid . ').' . $Extension, false);
         }
         return $result;
     }
