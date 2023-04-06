@@ -651,7 +651,7 @@ trait AP_Config
                         ],
                         [
                             'type'    => 'Button',
-                            'caption' => 'Textdatei erstellen',
+                            'caption' => 'Protokoll erstellen',
                             'onClick' => self::MODULE_PREFIX . '_CreateTextFileCustomPeriod($id, $StartDate, $EndDate); echo "Die Textdatei wurde erstellt!";'
                         ]
                     ]
