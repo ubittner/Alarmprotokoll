@@ -10,7 +10,6 @@
 
 /** @noinspection PhpRedundantMethodOverrideInspection */
 /** @noinspection PhpUnhandledExceptionInspection */
-/** @noinspection DuplicatedCode */
 /** @noinspection PhpUnused */
 
 declare(strict_types=1);
@@ -28,9 +27,9 @@ class Alarmprotokoll extends IPSModule
     //Constants
     private const MODULE_NAME = 'Alarmprotokoll';
     private const MODULE_PREFIX = 'AP';
-    private const MODULE_VERSION = '7.0-1, 08.09.2022';
+    private const MODULE_VERSION = '7.0-2, 06.04.2023';
     private const ARCHIVE_MODULE_GUID = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
-    private const MAILER_MODULE_GUID = '{C6CF3C5C-E97B-97AB-ADA2-E834976C6A92}';
+    private const SMTP_MODULE_GUID = '{375EAF21-35EF-4BC4-83B3-C780FD8BD88A}';
 
     public function Create()
     {
@@ -39,24 +38,32 @@ class Alarmprotokoll extends IPSModule
 
         ########## Properties
 
+        //Info
         $this->RegisterPropertyString('Note', '');
-        $this->RegisterPropertyBoolean('EnableActive', false);
-        $this->RegisterPropertyString('Designation', '');
-        $this->RegisterPropertyBoolean('EnableAlarmMessages', true);
-        $this->RegisterPropertyBoolean('EnableStateMessages', true);
-        $this->RegisterPropertyBoolean('EnableEventMessages', true);
-        $this->RegisterPropertyInteger('AlarmMessagesRetentionTime', 2);
-        $this->RegisterPropertyInteger('AmountStateMessages', 8);
-        $this->RegisterPropertyInteger('EventMessagesRetentionTime', 7);
+
+        //Archive
         $this->RegisterPropertyInteger('Archive', 0);
-        $this->RegisterPropertyBoolean('UseArchiving', false);
         $this->RegisterPropertyInteger('ArchiveRetentionTime', 90);
+
+        //Monthly protocol
         $this->RegisterPropertyBoolean('UseMonthlyProtocol', true);
-        $this->RegisterPropertyString('MonthlyProtocolSubject', 'Monatsprotokoll');
-        $this->RegisterPropertyInteger('MonthlyMailer', 0);
-        $this->RegisterPropertyBoolean('UseArchiveProtocol', true);
-        $this->RegisterPropertyString('ArchiveProtocolSubject', 'Archivprotokoll');
-        $this->RegisterPropertyInteger('ArchiveMailer', 0);
+        $this->RegisterPropertyInteger('MonthlyProtocolDay', 1);
+        $this->RegisterPropertyString('MonthlyProtocolTime', '{"hour":12,"minute":0,"second":0}');
+        $this->RegisterPropertyString('TextFileTitle', 'Alarmanlage');
+        $this->RegisterPropertyString('TextFileDescription', 'Protokoll (Standortbezeichnung)');
+        $this->RegisterPropertyInteger('MonthlySMTP', 0);
+        $this->RegisterPropertyString('MonthlyProtocolSubject', 'Protokoll Alarmanlage (Standortbezeichnung)');
+        $this->RegisterPropertyString('MonthlyProtocolText', 'Das Protokoll finden Sie im Anhang dieser E-Mail.');
+        $this->RegisterPropertyString('MonthlyRecipientList', '[]');
+
+        //Visualisation
+        $this->RegisterPropertyBoolean('EnableActive', false);
+        $this->RegisterPropertyBoolean('EnableAlarmMessages', true);
+        $this->RegisterPropertyInteger('AlarmMessagesRetentionTime', 2);
+        $this->RegisterPropertyBoolean('EnableStateMessages', true);
+        $this->RegisterPropertyInteger('AmountStateMessages', 8);
+        $this->RegisterPropertyBoolean('EnableEventMessages', true);
+        $this->RegisterPropertyInteger('EventMessagesRetentionTime', 7);
 
         ########## Variables
 
@@ -96,6 +103,9 @@ class Alarmprotokoll extends IPSModule
             IPS_SetHidden($this->GetIDForIdent('MessageArchive'), true);
         }
 
+        ##### Media
+        $this->RegisterMediaDocument('TextFile', 'Protokoll', 'txt', 60);
+
         ########## Timers
 
         $this->RegisterTimer('CleanUpMessages', 0, self::MODULE_PREFIX . '_CleanUpMessages(' . $this->InstanceID . ');');
@@ -130,27 +140,35 @@ class Alarmprotokoll extends IPSModule
         }
 
         //Register references
-        $propertyNames = [
-            ['name' => 'Archive', 'use' => 'UseArchiving'],
-            ['name' => 'MonthlyMailer', 'use' => 'UseMonthlyProtocol'],
-            ['name' => 'ArchiveMailer', 'use' => 'UseArchiveProtocol']
-        ];
-        foreach ($propertyNames as $propertyName) {
-            $id = $this->ReadPropertyInteger($propertyName['name']);
-            if ($id > 1 && @IPS_ObjectExists($id)) { //0 = main category, 1 = none
-                if ($this->ReadPropertyBoolean($propertyName['use'])) {
-                    $this->RegisterReference($id);
-                }
+        $archiveID = $this->ReadPropertyInteger('Archive');
+        if ($archiveID > 1 && @IPS_ObjectExists($archiveID)) {
+            $this->RegisterReference($archiveID);
+        }
+
+        $smtpID = $this->ReadPropertyInteger('MonthlySMTP');
+        if ($smtpID > 1 && @IPS_ObjectExists($smtpID)) {
+            if ($this->ReadPropertyBoolean('UseMonthlyProtocol')) {
+                $this->RegisterReference($smtpID);
             }
         }
 
         $this->RenameMessages();
-        $this->SetArchiveLogging($this->ReadPropertyBoolean('UseArchiving'));
+        $this->SetArchiveLogging();
+
+        //Timer
         $this->SetCleanUpMessagesTimer();
-        $this->SetTimerSendMonthlyProtocol();
+        $this->SetTimerInterval('SendMonthlyProtocol', $this->GetInterval('MonthlyProtocolTime'));
 
         //WebFront options
         IPS_SetHidden($this->GetIDForIdent('Active'), !$this->ReadPropertyBoolean('EnableActive'));
+        IPS_SetHidden($this->GetIDForIdent('AlarmMessages'), !$this->ReadPropertyBoolean('EnableAlarmMessages'));
+        IPS_SetHidden($this->GetIDForIdent('StateMessages'), !$this->ReadPropertyBoolean('EnableStateMessages'));
+        IPS_SetHidden($this->GetIDForIdent('EventMessages'), !$this->ReadPropertyBoolean('EnableEventMessages'));
+
+        //Create protocol text file
+        $startTime = strtotime('first day of previous month midnight');
+        $endTime = strtotime('first day of this month midnight') - 1;
+        $this->CreateTextFile($startTime, $endTime);
     }
 
     public function Destroy()
@@ -167,11 +185,11 @@ class Alarmprotokoll extends IPSModule
         }
     }
 
-    public function CreateMailerInstance(): void
+    public function CreateSMTPInstance(): void
     {
-        $id = @IPS_CreateInstance(self::MAILER_MODULE_GUID);
+        $id = @IPS_CreateInstance(self::SMTP_MODULE_GUID);
         if (is_int($id)) {
-            IPS_SetName($id, 'Mailer');
+            IPS_SetName($id, 'E-Mail, Send (SMTP)');
             echo 'Instanz mit der ID ' . $id . ' wurde erfolgreich erstellt!';
         } else {
             echo 'Instanz konnte nicht erstellt werden!';
@@ -202,5 +220,21 @@ class Alarmprotokoll extends IPSModule
             $result = true;
         }
         return $result;
+    }
+
+    private function GetInterval(string $TimerName): int
+    {
+        $timer = json_decode($this->ReadPropertyString($TimerName));
+        $now = time();
+        $hour = $timer->hour;
+        $minute = $timer->minute;
+        $second = $timer->second;
+        $definedTime = $hour . ':' . $minute . ':' . $second;
+        if (time() >= strtotime($definedTime)) {
+            $timestamp = mktime($hour, $minute, $second, (int) date('n'), (int) date('j') + 1, (int) date('Y'));
+        } else {
+            $timestamp = mktime($hour, $minute, $second, (int) date('n'), (int) date('j'), (int) date('Y'));
+        }
+        return ($timestamp - $now) * 1000;
     }
 }

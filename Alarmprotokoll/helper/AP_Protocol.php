@@ -8,15 +8,52 @@
  * @license       https://creativecommons.org/licenses/by-nc-sa/4.0/ CC BY-NC-SA 4.0
  */
 
-/** @noinspection PhpUndefinedFunctionInspection */
-/** @noinspection PhpUnused */
+/** @noinspection PhpExpressionResultUnusedInspection */
+/** @noinspection DuplicatedCode */
 
 declare(strict_types=1);
 
 trait AP_Protocol
 {
     /**
-     * Sends the monthly protocol via mail.
+     * Creates a text file with data, data range is a user-defined time period.
+     *
+     * @param string $StartDate
+     * @param string $EndDate
+     * @return bool
+     * @throws Exception
+     */
+    public function CreateTextFileCustomPeriod(string $StartDate, string $EndDate): bool
+    {
+        //Start date
+        $start = json_decode($StartDate);
+        $startDay = $start->day;
+        $startMonth = $start->month;
+        $startYear = $start->year;
+        $startTime = strtotime($startDay . '.' . $startMonth . '.' . $startYear . ' 00:00:00');
+        //End date
+        $end = json_decode($EndDate);
+        $endDay = $end->day;
+        $endMonth = $end->month;
+        $endYear = $end->year;
+        $endTime = strtotime($endDay . '.' . $endMonth . '.' . $endYear . ' 23:59:59');
+        //Header
+        $title = $this->ReadPropertyString('TextFileTitle');
+        $description = $this->ReadPropertyString('TextFileDescription');
+        $period = date('d.m.Y', $startTime) . ' bis ' . date('d.m.Y', $endTime);
+        $rows = $title . "\n\n";
+        $rows .= $description . "\n\n";
+        $rows .= $period . "\n\n";
+        //Data
+        foreach ($this->FetchData($startTime, $endTime) as $data) {
+            $rows .= $data['Value'] . "\n";
+        }
+        //Set content
+        return IPS_SetMediaContent($this->GetIDForIdent('TextFile'), base64_encode($rows));
+    }
+
+    /**
+     * Sends the monthly protocol via email.
      *
      * @param bool $CheckDay
      * false =  don't check day
@@ -24,7 +61,8 @@ trait AP_Protocol
      *
      * @param int $ProtocolPeriod
      * 0 =  actual month
-     * 1 =  last month
+     * 1 =  previous month
+     * 2 =  month before previous month
      *
      * @return void
      * @throws Exception
@@ -41,119 +79,150 @@ trait AP_Protocol
             $this->SendDebug(__FUNCTION__, 'Abbruch, Monatsprotokoll ist nicht aktiviert!', 0);
             return;
         }
-        $mailer = $this->ReadPropertyInteger('MonthlyMailer');
-        if ($mailer > 1 && @IPS_ObjectExists($mailer)) { //0 = main category, 1 = none
-            //Check if it is the first day of the month
-            $day = date('j');
-            if ($day == '1' || !$CheckDay) {
-                //Prepare data
-                $archive = $this->ReadPropertyInteger('Archive');
-                if ($archive != 0) {
-                    //This month
-                    $startTime = strtotime('first day of this month midnight');
-                    $endTime = strtotime('first day of next month midnight') - 1;
-                    //Last month
-                    if ($ProtocolPeriod == 1) {
-                        $startTime = strtotime('first day of previous month midnight');
-                        $endTime = strtotime('first day of this month midnight') - 1;
-                    }
-                    $designation = $this->ReadPropertyString('Designation');
-                    $month = date('n', $startTime);
-                    $monthName = [
-                        1           => 'Januar',
-                        2           => 'Februar',
-                        3           => 'März',
-                        4           => 'April',
-                        5           => 'Mai',
-                        6           => 'Juni',
-                        7           => 'Juli',
-                        8           => 'August',
-                        9           => 'September',
-                        10          => 'Oktober',
-                        11          => 'November',
-                        12          => 'Dezember'];
-                    $year = date('Y', $startTime);
-                    $text = 'Monatsprotokoll ' . $monthName[$month] . ' ' . $year . ', ' . $designation . ":\n\n\n";
-                    $messages = AC_GetLoggedValues($archive, $this->GetIDForIdent('MessageArchive'), $startTime, $endTime, 0);
-                    if (empty($messages)) {
-                        $text .= 'Es sind keine Ereignisse vorhanden.';
-                    } else {
-                        foreach ($messages as $message) {
-                            $text .= $message['Value'] . "\n";
-                        }
-                    }
-                    //Send mail
-                    $mailSubject = $this->ReadPropertyString('MonthlyProtocolSubject') . ' ' . $monthName[$month] . ' ' . $year . ', ' . $designation;
-                    @MA_SendMessage($mailer, $mailSubject, $text);
+        //Check if it is the correct day of the month
+        $day = date('j');
+        if ($day == $this->ReadPropertyInteger('MonthlyProtocolDay') || !$CheckDay) {
+            if ($this->ReadPropertyInteger('Archive') != 0) {
+                //Actual month
+                $startTime = strtotime('first day of this month midnight');
+                $endTime = strtotime('first day of next month midnight') - 1;
+                //Previous month
+                if ($ProtocolPeriod == 1) {
+                    $startTime = strtotime('first day of previous month midnight');
+                    $endTime = strtotime('first day of this month midnight') - 1;
                 }
+                //Two month before actual month
+                if ($ProtocolPeriod == 2) {
+                    $startTime = strtotime('first day of ' . date('F', strtotime('-2 month', strtotime(date('F') . '1'))) . ' ' . date('Y', strtotime('-2 month', strtotime(date('F') . '1'))));
+                    $endTime = strtotime('first day of ' . date('F', strtotime('-1 month', strtotime(date('F') . '1'))) . ' ' . date('Y', strtotime('-1 month', strtotime(date('F') . '1')))) - 1;
+                }
+                //Create text file
+                $this->CreateTextFile($startTime, $endTime);
+                //Send protocol
+                $this->SendProtocol();
             }
         }
-        $this->SetTimerSendMonthlyProtocol();
+        $this->SetTimerInterval('SendMonthlyProtocol', $this->GetInterval('MonthlyProtocolTime'));
     }
 
     /**
-     * Sends the archive protocol via mail.
+     * Sends the protocol to the email recipients.
      *
      * @return void
      * @throws Exception
      */
-    public function SendArchiveProtocol(): void
+    public function SendProtocol(): void
     {
-        $this->SendDebug(__FUNCTION__, 'wird ausgeführt', 0);
         if ($this->CheckMaintenance()) {
             return;
         }
-        if (!$this->ReadPropertyBoolean('UseArchiveProtocol')) {
-            $this->SendDebug(__FUNCTION__, 'Abbruch, Archivprotokoll ist nicht aktiviert!', 0);
-            return;
-        }
-        $mailer = $this->ReadPropertyInteger('ArchiveMailer');
-        if ($mailer > 1 && @IPS_ObjectExists($mailer)) { //0 = main category, 1 = none
-            //Prepare data
-            //Set start time to 2000-01-01 12:00 am
-            $startTime = 946684800;
-            $endTime = time();
-            $designation = $this->ReadPropertyString('Designation');
-            $text = 'Archivprotokoll' . ' ' . $designation . ":\n\n\n";
-            $messages = AC_GetLoggedValues($this->ReadPropertyInteger('Archive'), $this->GetIDForIdent('MessageArchive'), $startTime, $endTime, 0);
-            if (empty($messages)) {
-                $text .= 'Es sind keine Ereignisse vorhanden.';
-            } else {
-                foreach ($messages as $message) {
-                    $text .= $message['Value'] . "\n";
+        $monthlySMTP = $this->ReadPropertyInteger('MonthlySMTP');
+        if ($monthlySMTP > 1 && @IPS_ObjectExists($monthlySMTP)) { //0 = main category, 1 = none
+            $mailSubject = $this->ReadPropertyString('MonthlyProtocolSubject');
+            $mailText = $this->ReadPropertyString('MonthlyProtocolText') . "\n\n";
+            $filename = IPS_GetKernelDir() . IPS_GetMedia($this->GetIDForIdent('TextFile'))['MediaFile'];
+            $recipients = json_decode($this->ReadPropertyString('MonthlyRecipientList'), true);
+            foreach ($recipients as $recipient) {
+                if ($recipient['Use']) {
+                    $address = $recipient['Address'];
+                    if (strlen($address) >= 6) {
+                        @SMTP_SendMailAttachmentEx($monthlySMTP, $recipient['Address'], $mailSubject, $mailText, $filename);
+                    } else {
+                        $this->SendDebug(__FUNCTION__, 'Abbruch, E-Mail Adresse hat weniger als 6 Zeichen!', 0);
+                    }
                 }
             }
-            //Send mail
-            $mailSubject = $this->ReadPropertyString('ArchiveProtocolSubject') . ' ' . $designation;
-            @MA_SendMessage($mailer, $mailSubject, $text);
         }
     }
 
     #################### Private
 
     /**
-     * Sets the timer for the monthly protocol to send via mail.
+     * Creates a text file with data, data range is from a given start time to a given end time.
      *
-     * @return void
+     * @param int $StartTime
+     * @param int $EndTime
+     * @return bool
      * @throws Exception
      */
-    private function SetTimerSendMonthlyProtocol(): void
+    private function CreateTextFile(int $StartTime, int $EndTime): bool
     {
-        $this->SendDebug(__FUNCTION__, 'wird ausgeführt', 0);
-        $archiveRetentionTime = $this->ReadPropertyInteger('ArchiveRetentionTime');
-        if ($archiveRetentionTime > 0) {
-            //Set timer for monthly journal
-            $instanceStatus = @IPS_GetInstance($this->InstanceID)['InstanceStatus'];
-            if ($this->ReadPropertyInteger('Archive') != 0 && $instanceStatus == 102) {
-                //Set timer to next date
-                $timestamp = strtotime('next day noon');
-                $now = time();
-                $interval = ($timestamp - $now) * 1000;
-                $this->SetTimerInterval('SendMonthlyProtocol', $interval);
+        //Header
+        $title = $this->ReadPropertyString('TextFileTitle');
+        $description = $this->ReadPropertyString('TextFileDescription');
+        $period = date('d.m.Y', $StartTime) . ' bis ' . date('d.m.Y', $EndTime);
+        $rows = $title . "\n\n";
+        $rows .= $description . "\n\n";
+        $rows .= $period . "\n\n";
+        //Data
+        foreach ($this->FetchData($StartTime, $EndTime) as $data) {
+            $rows .= $data['Value'] . "\n";
+        }
+        //Set content
+        return IPS_SetMediaContent($this->GetIDForIdent('TextFile'), base64_encode($rows));
+    }
+
+    /**
+     * Registers a media document.
+     *
+     * @param string $Ident
+     * @param string $Name
+     * @param string $Extension
+     * @param int $Position
+     * @return void
+     */
+    private function RegisterMediaDocument(string $Ident, string $Name, string $Extension, int $Position = 0): void
+    {
+        $this->RegisterMedia(5 /* Document */, $Ident, $Name, $Extension, $Position);
+    }
+
+    /**
+     * Registers media.
+     *
+     * @param int $Type
+     * @param string $Ident
+     * @param string $Name
+     * @param string $Extension
+     * @param int $Position
+     * @return bool
+     */
+    private function RegisterMedia(int $Type, string $Ident, string $Name, string $Extension, int $Position): bool
+    {
+        $result = true;
+        $mid = @IPS_GetObjectIDByIdent($Ident, $this->InstanceID);
+        if ($mid === false) {
+            $mid = IPS_CreateMedia($Type);
+            IPS_SetParent($mid, $this->InstanceID);
+            IPS_SetIdent($mid, $Ident);
+            IPS_SetName($mid, $Name);
+            IPS_SetPosition($mid, $Position);
+            IPS_SetHidden($mid, true);
+            $result = IPS_SetMediaFile($mid, 'media/Protokoll_(ID ' . $mid . ').' . $Extension, false);
+        }
+        return $result;
+    }
+
+    /**
+     * Fetches the data from the archive.
+     *
+     * @param int $StartTime
+     * @param int $EndTime
+     * @return array
+     * @throws Exception
+     */
+    private function FetchData(int $StartTime, int $EndTime): array
+    {
+        $result = [];
+        $archiveID = $this->ReadPropertyInteger('Archive');
+        if ($archiveID <= 1 || @!IPS_ObjectExists($archiveID)) {
+            return $result;
+        }
+        $variableID = $this->GetIDForIdent('MessageArchive');
+        if ($variableID > 1 && @IPS_ObjectExists($variableID)) {
+            if (AC_GetLoggingStatus($archiveID, $variableID)) {
+                $result = AC_GetLoggedValues($this->ReadPropertyInteger('Archive'), $variableID, $StartTime, $EndTime, 0);
             }
         }
-        if ($archiveRetentionTime <= 0) {
-            $this->SetTimerInterval('SendMonthlyProtocol', 0);
-        }
+        return $result;
     }
 }

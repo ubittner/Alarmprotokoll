@@ -8,8 +8,6 @@
  * @license       https://creativecommons.org/licenses/by-nc-sa/4.0/ CC BY-NC-SA 4.0
  */
 
-/** @noinspection PhpUnused */
-
 declare(strict_types=1);
 
 trait AP_Config
@@ -55,7 +53,8 @@ trait AP_Config
 
         ########## Elements
 
-        //Info
+        ##### Element: Info
+
         $form['elements'][0] = [
             'type'    => 'ExpansionPanel',
             'caption' => 'Info',
@@ -93,101 +92,18 @@ trait AP_Config
             ]
         ];
 
-        //Designation
-        $form['elements'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Bezeichnung',
-            'items'   => [
-                [
-                    'type'    => 'ValidationTextBox',
-                    'name'    => 'Designation',
-                    'caption' => 'Bezeichnung (z.B. Standortbezeichnung)',
-                    'width'   => '600px'
-                ]
-            ]
-        ];
+        ##### Element: Archive
 
-        //Messages
-        $form['elements'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Meldungen',
-            'items'   => [
-                [
-                    'type'    => 'CheckBox',
-                    'name'    => 'EnableAlarmMessages',
-                    'caption' => 'Alarmmeldungen'
-                ],
-                [
-                    'type'    => 'NumberSpinner',
-                    'name'    => 'AlarmMessagesRetentionTime',
-                    'caption' => 'Anzeigedauer',
-                    'suffix'  => 'Tage'
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => ' '
-                ],
-                [
-                    'type'    => 'CheckBox',
-                    'name'    => 'EnableStateMessages',
-                    'caption' => 'Zustandsmeldungen'
-                ],
-                [
-                    'type'    => 'NumberSpinner',
-                    'name'    => 'AmountStateMessages',
-                    'caption' => 'Anzeige',
-                    'suffix'  => 'Meldungen'
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => ' '
-                ],
-                [
-                    'type'    => 'CheckBox',
-                    'name'    => 'EnableEventMessages',
-                    'caption' => 'Ereignismeldungen'
-                ],
-                [
-                    'type'    => 'NumberSpinner',
-                    'name'    => 'EventMessagesRetentionTime',
-                    'caption' => 'Anzeigedauer',
-                    'suffix'  => 'Tage'
-                ],
-            ]
-        ];
-
-        //Archive
         $id = $this->ReadPropertyInteger('Archive');
         $enabled = false;
         if ($id > 1 && @IPS_ObjectExists($id)) { //0 = main category, 1 = none
             $enabled = true;
-            $variables = @AC_GetAggregationVariables($id, false);
-            $state = false;
-            if (!empty($variables)) {
-                foreach ($variables as $variable) {
-                    $variableID = $variable['VariableID'];
-                    if ($variableID == $this->GetIDForIdent('MessageArchive')) {
-                        $state = @AC_GetLoggingStatus($id, $variableID);
-                    }
-                }
-            }
-            $text = 'Es werden keine Daten archiviert!';
-            if ($state) {
-                $text = 'Die Daten werden archiviert!';
-            }
-        } else {
-            $text = 'Es ist kein Archiv ausgewählt!';
         }
 
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
             'caption' => 'Archivierung',
             'items'   => [
-                [
-                    'type'    => 'CheckBox',
-                    'name'    => 'UseArchiving',
-                    'caption' => 'Archivierung'
-                ],
                 [
                     'type'  => 'RowLayout',
                     'items' => [
@@ -218,105 +134,232 @@ trait AP_Config
                     'caption' => 'Datenspeicherung',
                     'minimum' => 7,
                     'suffix'  => 'Tage'
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => 'Status:',
-                    'bold'    => true,
-                    'italic'  => true
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => $text
                 ]
             ]
         ];
 
-        //Protocols
-        $monthlyMailer = $this->ReadPropertyInteger('MonthlyMailer');
-        $monthlyMailerVisibility = false;
-        if ($monthlyMailer > 1 && @IPS_ObjectExists($monthlyMailer)) { //0 = main category, 1 = none
-            $monthlyMailerVisibility = true;
+        ##### Element: Monthly protocol
+
+        //Monthly SMTP
+        $monthlySMTP = $this->ReadPropertyInteger('MonthlySMTP');
+        $enabled = false;
+        if ($monthlySMTP > 1 && @IPS_ObjectExists($monthlySMTP)) { //0 = main category, 1 = none
+            $enabled = true;
         }
 
-        $archiveMailer = $this->ReadPropertyInteger('ArchiveMailer');
-        $archiveMailerVisibility = false;
-        if ($archiveMailer > 1 && @IPS_ObjectExists($archiveMailer)) { //0 = main category, 1 = none
-            $archiveMailerVisibility = true;
+        //Monthly recipient list
+        $monthlyRecipientValues = [];
+        $recipients = json_decode($this->ReadPropertyString('MonthlyRecipientList'), true);
+        foreach ($recipients as $recipient) {
+            $rowColor = '#C0FFC0'; //light green
+            if (!$recipient['Use']) {
+                $rowColor = '#DFDFDF'; //grey
+            }
+            $address = $recipient['Address'];
+            if (empty($address) || strlen($address) < 6) {
+                $rowColor = '#FFC0C0'; //red
+            }
+            $monthlyRecipientValues[] = ['rowColor' => $rowColor];
         }
 
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
-            'caption' => 'Protokolle',
+            'caption' => 'Protokoll',
             'items'   => [
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Monatsprotokoll',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
                 [
                     'type'    => 'CheckBox',
                     'name'    => 'UseMonthlyProtocol',
                     'caption' => 'Monatsprotokoll'
                 ],
                 [
-                    'type'    => 'ValidationTextBox',
-                    'name'    => 'MonthlyProtocolSubject',
-                    'caption' => 'Betreff'
-                ],
-                [
-                    'type'  => 'RowLayout',
-                    'items' => [
+                    'type'    => 'Select',
+                    'name'    => 'MonthlyProtocolDay',
+                    'caption' => 'Versenden am',
+                    'options' => [
                         [
-                            'type'     => 'SelectModule',
-                            'name'     => 'MonthlyMailer',
-                            'caption'  => 'Mailer (E-Mail)',
-                            'moduleID' => self::MAILER_MODULE_GUID,
-                            'width'    => '600px',
-                            'onChange' => self::MODULE_PREFIX . '_ModifyButton($id, "MonthlyMailerConfigurationButton", "ID " . $MonthlyMailer . " Instanzkonfiguration", $MonthlyMailer);'
+                            'caption' => '1.',
+                            'value'   => 1
                         ],
                         [
-                            'type'    => 'Button',
-                            'caption' => 'Neue Instanz erstellen',
-                            'onClick' => self::MODULE_PREFIX . '_CreateMailerInstance($id);'
+                            'caption' => '2.',
+                            'value'   => 2
                         ],
                         [
-                            'type'    => 'Label',
-                            'caption' => ' '
+                            'caption' => '3.',
+                            'value'   => 3
                         ],
                         [
-                            'type'     => 'OpenObjectButton',
-                            'caption'  => 'ID ' . $monthlyMailer . ' Instanzkonfiguration',
-                            'name'     => 'MonthlyMailerConfigurationButton',
-                            'visible'  => $monthlyMailerVisibility,
-                            'objectID' => $monthlyMailer
+                            'caption' => '4.',
+                            'value'   => 4
+                        ],
+                        [
+                            'caption' => '5.',
+                            'value'   => 5
+                        ],
+                        [
+                            'caption' => '6.',
+                            'value'   => 6
+                        ],
+                        [
+                            'caption' => '7.',
+                            'value'   => 7
+                        ],
+                        [
+                            'caption' => '8.',
+                            'value'   => 8
+                        ],
+                        [
+                            'caption' => '9.',
+                            'value'   => 9
+                        ],
+                        [
+                            'caption' => '10.',
+                            'value'   => 10
+                        ],
+                        [
+                            'caption' => '11.',
+                            'value'   => 11
+                        ],
+                        [
+                            'caption' => '12.',
+                            'value'   => 12
+                        ],
+                        [
+                            'caption' => '13.',
+                            'value'   => 13
+                        ],
+                        [
+                            'caption' => '14.',
+                            'value'   => 14
+                        ],
+                        [
+                            'caption' => '15.',
+                            'value'   => 15
+                        ],
+                        [
+                            'caption' => '16.',
+                            'value'   => 16
+                        ],
+                        [
+                            'caption' => '17.',
+                            'value'   => 17
+                        ],
+                        [
+                            'caption' => '18.',
+                            'value'   => 18
+                        ],
+                        [
+                            'caption' => '19.',
+                            'value'   => 19
+                        ],
+                        [
+                            'caption' => '20.',
+                            'value'   => 20
+                        ],
+                        [
+                            'caption' => '21.',
+                            'value'   => 21
+                        ],
+                        [
+                            'caption' => '22.',
+                            'value'   => 22
+                        ],
+                        [
+                            'caption' => '23.',
+                            'value'   => 23
+                        ],
+                        [
+                            'caption' => '24.',
+                            'value'   => 24
+                        ],
+                        [
+                            'caption' => '25.',
+                            'value'   => 25
+                        ],
+                        [
+                            'caption' => '26.',
+                            'value'   => 26
+                        ],
+                        [
+                            'caption' => '27.',
+                            'value'   => 27
+                        ],
+                        [
+                            'caption' => '28.',
+                            'value'   => 28
+                        ],
+                        [
+                            'caption' => '29.',
+                            'value'   => 29
+                        ],
+                        [
+                            'caption' => '30.',
+                            'value'   => 30
+                        ],
+                        [
+                            'caption' => '31.',
+                            'value'   => 31
                         ]
                     ]
+                ],
+                [
+                    'type'    => 'SelectTime',
+                    'name'    => 'MonthlyProtocolTime',
+                    'caption' => 'Versenden um'
                 ],
                 [
                     'type'    => 'Label',
                     'caption' => ' '
                 ],
                 [
-                    'type'    => 'CheckBox',
-                    'name'    => 'UseArchiveProtocol',
-                    'caption' => 'Archivprotokoll'
+                    'type'    => 'Label',
+                    'caption' => 'Protokollkopfzeile',
+                    'bold'    => true,
+                    'italic'  => true
                 ],
                 [
                     'type'    => 'ValidationTextBox',
-                    'name'    => 'ArchiveProtocolSubject',
-                    'caption' => 'Betreff'
+                    'name'    => 'TextFileTitle',
+                    'caption' => 'Titel',
+                    'width'   => '600px'
+                ],
+                [
+                    'type'    => 'ValidationTextBox',
+                    'name'    => 'TextFileDescription',
+                    'caption' => 'Bezeichnung',
+                    'width'   => '600px'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'E-Mail',
+                    'bold'    => true,
+                    'italic'  => true
                 ],
                 [
                     'type'  => 'RowLayout',
                     'items' => [
                         [
                             'type'     => 'SelectModule',
-                            'name'     => 'ArchiveMailer',
-                            'caption'  => 'Mailer (E-Mail)',
-                            'moduleID' => self::MAILER_MODULE_GUID,
+                            'name'     => 'MonthlySMTP',
+                            'caption'  => 'SMTP Instanz',
+                            'moduleID' => self::SMTP_MODULE_GUID,
                             'width'    => '600px',
-                            'onChange' => self::MODULE_PREFIX . '_ModifyButton($id, "ArchiveMailerConfigurationButton", "ID " . $ArchiveMailer . " Instanzkonfiguration", $ArchiveMailer);'
+                            'onChange' => self::MODULE_PREFIX . '_ModifyButton($id, "MonthlySMTPConfigurationButton", "ID " . $MonthlySMTP . " Instanzkonfiguration", $MonthlySMTP);'
                         ],
                         [
                             'type'    => 'Button',
                             'caption' => 'Neue Instanz erstellen',
-                            'onClick' => self::MODULE_PREFIX . '_CreateMailerInstance($id);'
+                            'onClick' => self::MODULE_PREFIX . '_CreateSMTPInstance($id);'
                         ],
                         [
                             'type'    => 'Label',
@@ -324,17 +367,67 @@ trait AP_Config
                         ],
                         [
                             'type'     => 'OpenObjectButton',
-                            'caption'  => 'ID ' . $archiveMailer . ' Instanzkonfiguration',
-                            'name'     => 'ArchiveMailerConfigurationButton',
-                            'visible'  => $archiveMailerVisibility,
-                            'objectID' => $archiveMailer
+                            'caption'  => 'ID ' . $monthlySMTP . ' Instanzkonfiguration',
+                            'name'     => 'MonthlySMTPConfigurationButton',
+                            'visible'  => $enabled,
+                            'objectID' => $monthlySMTP
                         ]
                     ]
+                ],
+                [
+                    'type'    => 'ValidationTextBox',
+                    'name'    => 'MonthlyProtocolSubject',
+                    'caption' => 'Betreff',
+                    'width'   => '600px'
+                ],
+                [
+                    'type'    => 'ValidationTextBox',
+                    'name'    => 'MonthlyProtocolText',
+                    'caption' => 'Text',
+                    'width'   => '600px'
+                ],
+                [
+                    'type'     => 'List',
+                    'name'     => 'MonthlyRecipientList',
+                    'rowCount' => 5,
+                    'add'      => true,
+                    'delete'   => true,
+                    'columns'  => [
+                        [
+                            'caption' => 'Aktiviert',
+                            'name'    => 'Use',
+                            'width'   => '100px',
+                            'add'     => true,
+                            'edit'    => [
+                                'type' => 'CheckBox'
+                            ]
+                        ],
+                        [
+                            'caption' => 'Empfänger',
+                            'name'    => 'Name',
+                            'width'   => '350px',
+                            'add'     => '',
+                            'edit'    => [
+                                'type' => 'ValidationTextBox'
+                            ]
+                        ],
+                        [
+                            'caption' => 'E-Mail Adresse',
+                            'name'    => 'Address',
+                            'width'   => '400px',
+                            'add'     => '@',
+                            'edit'    => [
+                                'type' => 'ValidationTextBox'
+                            ]
+                        ]
+                    ],
+                    'values' => $monthlyRecipientValues
                 ]
             ]
         ];
 
-        //Visualisation
+        ##### Element: Visualisation
+
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
             'caption' => 'Visualisierung',
@@ -351,9 +444,82 @@ trait AP_Config
                     'italic'  => true
                 ],
                 [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Aktiv',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
+                [
                     'type'    => 'CheckBox',
                     'name'    => 'EnableActive',
                     'caption' => 'Aktiv'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Alarmmeldungen',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
+                [
+                    'type'    => 'CheckBox',
+                    'name'    => 'EnableAlarmMessages',
+                    'caption' => 'Alarmmeldungen'
+                ],
+                [
+                    'type'    => 'NumberSpinner',
+                    'name'    => 'AlarmMessagesRetentionTime',
+                    'caption' => 'Anzeigedauer',
+                    'suffix'  => 'Tage'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Zustandsmeldungen',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
+                [
+                    'type'    => 'CheckBox',
+                    'name'    => 'EnableStateMessages',
+                    'caption' => 'Zustandsmeldungen'
+                ],
+                [
+                    'type'    => 'NumberSpinner',
+                    'name'    => 'AmountStateMessages',
+                    'caption' => 'Anzeige',
+                    'suffix'  => 'Meldungen'
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => 'Ereignismeldungen',
+                    'bold'    => true,
+                    'italic'  => true
+                ],
+                [
+                    'type'    => 'CheckBox',
+                    'name'    => 'EnableEventMessages',
+                    'caption' => 'Ereignismeldungen'
+                ],
+                [
+                    'type'    => 'NumberSpinner',
+                    'name'    => 'EventMessagesRetentionTime',
+                    'caption' => 'Anzeigedauer',
+                    'suffix'  => 'Tage'
                 ]
             ]
         ];
@@ -464,22 +630,36 @@ trait AP_Config
         //Protocols
         $form['actions'][] = [
             'type'    => 'ExpansionPanel',
-            'caption' => 'Protokolle',
+            'caption' => 'Protokoll',
             'items'   => [
                 [
-                    'type'    => 'Button',
-                    'caption' => 'Protokoll Vormonat versenden',
-                    'onClick' => self::MODULE_PREFIX . '_SendMonthlyProtocol($id, false, 1); echo "Protokollversand wurde ausgelöst!";'
+                    'type'  => 'RowLayout',
+                    'items' => [
+                        [
+                            'type'    => 'SelectDate',
+                            'name'    => 'StartDate',
+                            'caption' => 'Datum von'
+                        ],
+                        [
+                            'type'    => 'SelectDate',
+                            'name'    => 'EndDate',
+                            'caption' => 'Datum bis'
+                        ],
+                        [
+                            'type'    => 'Label',
+                            'caption' => ' '
+                        ],
+                        [
+                            'type'    => 'Button',
+                            'caption' => 'Protokoll erstellen',
+                            'onClick' => self::MODULE_PREFIX . '_CreateTextFileCustomPeriod($id, $StartDate, $EndDate); echo "Die Textdatei wurde erstellt!";'
+                        ]
+                    ]
                 ],
                 [
                     'type'    => 'Button',
-                    'caption' => 'Protokoll Aktueller Monat versenden',
-                    'onClick' => self::MODULE_PREFIX . '_SendMonthlyProtocol($id, false, 0); echo "Protokollversand wurde ausgelöst!";'
-                ],
-                [
-                    'type'    => 'Button',
-                    'caption' => 'Archivprotokoll versenden',
-                    'onClick' => self::MODULE_PREFIX . '_SendArchiveProtocol($id); echo "Archivprotokollversand wurde ausgelöst!";'
+                    'caption' => 'Protokoll versenden',
+                    'onClick' => self::MODULE_PREFIX . '_SendProtocol($id); echo "Protokoll wurde versendet!";'
                 ]
             ]
         ];
