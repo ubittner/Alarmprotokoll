@@ -12,30 +12,46 @@ declare(strict_types=1);
 
 trait AP_Archive
 {
+    #################### Private
+
     /**
      * Sets the archive logging.
      *
-     * @param bool $State
-     * false =  don't log
-     * true =   log
-     *
-     * @return void
+     * @return bool
      * @throws Exception
      */
-    public function SetArchiveLogging(bool $State): void
+    private function SetArchiveLogging(): bool
     {
         $this->SendDebug(__FUNCTION__, 'wird ausgeführt', 0);
-        $id = $this->ReadPropertyInteger('Archive');
-        if ($id > 1 && @IPS_ObjectExists($id)) { //0 = main category, 1 = none
-            @AC_SetLoggingStatus($id, $this->GetIDForIdent('MessageArchive'), $State);
-            @IPS_ApplyChanges($id);
-            $text = 'Es werden keine Daten mehr archiviert!';
-            if ($State) {
-                $text = 'Die Daten werden archiviert!';
+        $result = false;
+        $archiveID = $this->ReadPropertyInteger('Archive');
+        $variableID = $this->GetIDForIdent('MessageArchive');
+        if ($archiveID > 1 && @IPS_ObjectExists($archiveID)) { //0 = main category, 1 = none
+            if ($variableID > 1 && @IPS_ObjectExists($variableID)) {
+                $this->SendDebug(__FUNCTION__, 'Daten werden archiviert!', 0);
+                $result = AC_SetLoggingStatus($archiveID, $variableID, true);
+                if (IPS_HasChanges($archiveID)) {
+                    @IPS_ApplyChanges($archiveID);
+                }
             }
-            $this->SendDebug(__FUNCTION__, $text, 0);
-        } else {
-            $this->SendDebug(__FUNCTION__, 'Es ist kein Archiv ausgewählt!', 0);
         }
+        if ($archiveID == 0) {
+            $archives = IPS_GetInstanceListByModuleID(self::ARCHIVE_MODULE_GUID);
+            if ($variableID > 1 && @IPS_ObjectExists($variableID)) {
+                foreach ($archives as $archive) {
+                    $variables = @AC_GetAggregationVariables($archive, false);
+                    foreach ($variables as $variable) {
+                        if ($variable['VariableID'] == $variableID) {
+                            $this->SendDebug(__FUNCTION__, 'Daten werden nicht archiviert!', 0);
+                            $result = AC_SetLoggingStatus($archive, $variableID, false);
+                            if (IPS_HasChanges($archive)) {
+                                @IPS_ApplyChanges($archive);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return $result;
     }
 }

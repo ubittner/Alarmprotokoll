@@ -8,8 +8,6 @@
  * @license       https://creativecommons.org/licenses/by-nc-sa/4.0/ CC BY-NC-SA 4.0
  */
 
-/** @noinspection DuplicatedCode */
-
 declare(strict_types=1);
 
 trait AP_Config
@@ -100,33 +98,12 @@ trait AP_Config
         $enabled = false;
         if ($id > 1 && @IPS_ObjectExists($id)) { //0 = main category, 1 = none
             $enabled = true;
-            $variables = @AC_GetAggregationVariables($id, false);
-            $state = false;
-            if (!empty($variables)) {
-                foreach ($variables as $variable) {
-                    $variableID = $variable['VariableID'];
-                    if ($variableID == $this->GetIDForIdent('MessageArchive')) {
-                        $state = @AC_GetLoggingStatus($id, $variableID);
-                    }
-                }
-            }
-            $text = 'Es werden keine Daten archiviert!';
-            if ($state) {
-                $text = 'Die Daten werden archiviert!';
-            }
-        } else {
-            $text = 'Es ist kein Archiv ausgewählt!';
         }
 
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
             'caption' => 'Archivierung',
             'items'   => [
-                [
-                    'type'    => 'CheckBox',
-                    'name'    => 'UseArchiving',
-                    'caption' => 'Archivierung'
-                ],
                 [
                     'type'  => 'RowLayout',
                     'items' => [
@@ -157,20 +134,6 @@ trait AP_Config
                     'caption' => 'Datenspeicherung',
                     'minimum' => 7,
                     'suffix'  => 'Tage'
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => ' '
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => 'Status',
-                    'bold'    => true,
-                    'italic'  => true
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => $text
                 ]
             ]
         ];
@@ -356,20 +319,20 @@ trait AP_Config
                 ],
                 [
                     'type'    => 'Label',
-                    'caption' => 'PDF-Dokument',
+                    'caption' => 'Textdatei',
                     'bold'    => true,
                     'italic'  => true
                 ],
                 [
-                    'name'       => 'LogoData',
-                    'type'       => 'SelectFile',
-                    'caption'    => 'Logo',
-                    'extensions' => '.png'
+                    'type'    => 'ValidationTextBox',
+                    'name'    => 'TextFileTitle',
+                    'caption' => 'Titel',
+                    'width'   => '600px'
                 ],
                 [
                     'type'    => 'ValidationTextBox',
-                    'name'    => 'Designation',
-                    'caption' => 'Standortbezeichnung (z.B. Musterstraße 1)',
+                    'name'    => 'TextFileDescription',
+                    'caption' => 'Bezeichnung',
                     'width'   => '600px'
                 ],
                 [
@@ -667,7 +630,7 @@ trait AP_Config
         //Protocols
         $form['actions'][] = [
             'type'    => 'ExpansionPanel',
-            'caption' => 'Monatsprotokoll',
+            'caption' => 'Alarmprotokoll',
             'items'   => [
                 [
                     'type'  => 'RowLayout',
@@ -688,15 +651,15 @@ trait AP_Config
                         ],
                         [
                             'type'    => 'Button',
-                            'caption' => 'PDF-Dokument erstellen',
-                            'onClick' => self::MODULE_PREFIX . '_GenerateCustomReport($id, $StartDate, $EndDate); echo "PDF-Dokument wurde erstellt!";'
+                            'caption' => 'Textdatei erstellen',
+                            'onClick' => self::MODULE_PREFIX . '_CreateTextFileCustomPeriod($id, $StartDate, $EndDate); echo "Die Textdatei wurde erstellt!";'
                         ]
                     ]
                 ],
                 [
                     'type'    => 'Button',
-                    'caption' => 'PDF-Dokument versenden',
-                    'onClick' => self::MODULE_PREFIX . '_SendReport($id); echo "PDF-Dokument wurde versendet!";'
+                    'caption' => 'Protokoll versenden',
+                    'onClick' => self::MODULE_PREFIX . '_SendProtocol($id); echo "Protokoll wurde versendet!";'
                 ]
             ]
         ];
