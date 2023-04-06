@@ -50,10 +50,10 @@ class Alarmprotokoll extends IPSModule
         $this->RegisterPropertyInteger('MonthlyProtocolDay', 1);
         $this->RegisterPropertyString('MonthlyProtocolTime', '{"hour":12,"minute":0,"second":0}');
         $this->RegisterPropertyString('TextFileTitle', 'Alarmanlage');
-        $this->RegisterPropertyString('TextFileDescription', 'Alarmprotokoll (Standortbezeichnung)');
+        $this->RegisterPropertyString('TextFileDescription', 'Protokoll (Standortbezeichnung)');
         $this->RegisterPropertyInteger('MonthlySMTP', 0);
-        $this->RegisterPropertyString('MonthlyProtocolSubject', 'Alarmprotokoll (Standortbezeichnung)');
-        $this->RegisterPropertyString('MonthlyProtocolText', 'Das Alarmprotokoll finden Sie im Anhang dieser E-Mail.');
+        $this->RegisterPropertyString('MonthlyProtocolSubject', 'Protokoll Alarmanlage (Standortbezeichnung)');
+        $this->RegisterPropertyString('MonthlyProtocolText', 'Das Protokoll finden Sie im Anhang dieser E-Mail.');
         $this->RegisterPropertyString('MonthlyRecipientList', '[]');
 
         //Visualisation
@@ -104,7 +104,7 @@ class Alarmprotokoll extends IPSModule
         }
 
         ##### Media
-        $this->RegisterMediaDocument('TextFile', 'Alarmprotokoll', 'txt', 60);
+        $this->RegisterMediaDocument('TextFile', 'Protokoll', 'txt', 60);
 
         ########## Timers
 

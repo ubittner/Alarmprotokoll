@@ -164,11 +164,11 @@ trait AP_Config
 
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
-            'caption' => 'Monatsprotokoll',
+            'caption' => 'Protokoll',
             'items'   => [
                 [
                     'type'    => 'Label',
-                    'caption' => 'Ausführung',
+                    'caption' => 'Monatsprotokoll',
                     'bold'    => true,
                     'italic'  => true
                 ],
@@ -319,7 +319,7 @@ trait AP_Config
                 ],
                 [
                     'type'    => 'Label',
-                    'caption' => 'Textdatei',
+                    'caption' => 'Protokollkopfzeile',
                     'bold'    => true,
                     'italic'  => true
                 ],
@@ -630,7 +630,7 @@ trait AP_Config
         //Protocols
         $form['actions'][] = [
             'type'    => 'ExpansionPanel',
-            'caption' => 'Alarmprotokoll',
+            'caption' => 'Protokoll',
             'items'   => [
                 [
                     'type'  => 'RowLayout',
