@@ -45,7 +45,17 @@ trait AP_Protocol
         $rows .= $description . "\n\n";
         $rows .= $period . "\n\n";
         //Data
-        foreach ($this->FetchData($startTime, $endTime) as $data) {
+        $dataset = $this->FetchData($startTime, $endTime);
+        if (count($dataset) == 1) {
+            if (array_key_exists(0, $dataset)) {
+                if (array_key_exists('Value', $dataset[0])) {
+                    if ($dataset[0]['Value'] == '') {
+                        $rows .= 'Es sind keine Einträge vorhanden!';
+                    }
+                }
+            }
+        }
+        foreach ($dataset as $data) {
             $rows .= $data['Value'] . "\n";
         }
         //Set content
@@ -155,7 +165,17 @@ trait AP_Protocol
         $rows .= $description . "\n\n";
         $rows .= $period . "\n\n";
         //Data
-        foreach ($this->FetchData($StartTime, $EndTime) as $data) {
+        $dataset = $this->FetchData($StartTime, $EndTime);
+        if (count($dataset) == 1) {
+            if (array_key_exists(0, $dataset)) {
+                if (array_key_exists('Value', $dataset[0])) {
+                    if ($dataset[0]['Value'] == '') {
+                        $rows .= 'Es sind keine Einträge vorhanden!';
+                    }
+                }
+            }
+        }
+        foreach ($dataset as $data) {
             $rows .= $data['Value'] . "\n";
         }
         //Set content
@@ -197,7 +217,7 @@ trait AP_Protocol
             IPS_SetName($mid, $Name);
             IPS_SetPosition($mid, $Position);
             IPS_SetHidden($mid, true);
-            $result = IPS_SetMediaFile($mid, 'media/Protokoll_(ID ' . $mid . ').' . $Extension, false);
+            $result = IPS_SetMediaFile($mid, 'media/Protokoll_ID' . $mid . '.' . $Extension, false);
         }
         return $result;
     }
