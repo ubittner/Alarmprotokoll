@@ -627,6 +627,11 @@ trait AP_Config
             ]
         ];
 
+        $startTime = strtotime('first day of previous month midnight');
+        $endTime = strtotime('first day of this month midnight') - 1;
+        $startDate = '{"day":' . date('j', $startTime) . ',"month":' . date('n', $startTime) . ',"year":' . date('Y', $startTime) . '}';
+        $endDate = '{"day":' . date('j', $endTime) . ', "month":' . date('n', $endTime) . ', "year":' . date('Y', $endTime) . '}';
+
         //Protocols
         $form['actions'][] = [
             'type'    => 'ExpansionPanel',
@@ -638,12 +643,14 @@ trait AP_Config
                         [
                             'type'    => 'SelectDate',
                             'name'    => 'StartDate',
-                            'caption' => 'Datum von'
+                            'caption' => 'Datum von',
+                            'value'   => $startDate
                         ],
                         [
                             'type'    => 'SelectDate',
                             'name'    => 'EndDate',
-                            'caption' => 'Datum bis'
+                            'caption' => 'Datum bis',
+                            'value'   => $endDate
                         ],
                         [
                             'type'    => 'Label',
