@@ -20,10 +20,10 @@ trait AP_Protocol
      *
      * @param string $StartDate
      * @param string $EndDate
-     * @return bool
+     * @return void
      * @throws Exception
      */
-    public function CreateTextFileCustomPeriod(string $StartDate, string $EndDate): bool
+    public function GenerateTextFileCustomData(string $StartDate, string $EndDate): void
     {
         //Start date
         $start = json_decode($StartDate);
@@ -46,6 +46,9 @@ trait AP_Protocol
         $rows .= $period . "\n\n";
         //Data
         $dataset = $this->FetchData($startTime, $endTime);
+        if (empty($dataset)) {
+            $rows .= 'Es sind keine Einträge vorhanden!';
+        }
         if (count($dataset) == 1) {
             if (array_key_exists(0, $dataset)) {
                 if (array_key_exists('Value', $dataset[0])) {
@@ -58,8 +61,8 @@ trait AP_Protocol
         foreach ($dataset as $data) {
             $rows .= $data['Value'] . "\n";
         }
-        //Set content
-        return IPS_SetMediaContent($this->GetIDForIdent('TextFile'), base64_encode($rows));
+        //Create text file
+        $this->CreateTextFile($rows);
     }
 
     /**
@@ -106,8 +109,8 @@ trait AP_Protocol
                     $startTime = strtotime('first day of ' . date('F', strtotime('-2 month', strtotime(date('F') . '1'))) . ' ' . date('Y', strtotime('-2 month', strtotime(date('F') . '1'))));
                     $endTime = strtotime('first day of ' . date('F', strtotime('-1 month', strtotime(date('F') . '1'))) . ' ' . date('Y', strtotime('-1 month', strtotime(date('F') . '1')))) - 1;
                 }
-                //Create text file
-                $this->CreateTextFile($startTime, $endTime);
+                //Generate data for textfile
+                $this->GenerateTextFileData($startTime, $endTime);
                 //Send protocol
                 $this->SendProtocol();
             }
@@ -130,7 +133,7 @@ trait AP_Protocol
         if ($monthlySMTP > 1 && @IPS_ObjectExists($monthlySMTP)) { //0 = main category, 1 = none
             $mailSubject = $this->ReadPropertyString('MonthlyProtocolSubject');
             $mailText = $this->ReadPropertyString('MonthlyProtocolText') . "\n\n";
-            $filename = IPS_GetKernelDir() . IPS_GetMedia($this->GetIDForIdent('TextFile'))['MediaFile'];
+            $filename = IPS_GetKernelDir() . 'media/' . $this->InstanceID . '/Protokoll.txt';
             $recipients = json_decode($this->ReadPropertyString('MonthlyRecipientList'), true);
             foreach ($recipients as $recipient) {
                 if ($recipient['Use']) {
@@ -148,14 +151,54 @@ trait AP_Protocol
     #################### Private
 
     /**
+     * Create the text file with content.
+     *
+     * @param string $Content
+     * @return void
+     */
+    private function CreateTextFile(string $Content): void
+    {
+        $path = IPS_GetKernelDir() . 'media/' . $this->InstanceID;
+        //Check for existing dir
+        if (!is_dir($path)) {
+            //Create dir
+            mkdir($path, 0777, true);
+        }
+        $fp = fopen($path . '/Protokoll.txt', 'w');
+        fwrite($fp, $Content);
+        fclose($fp);
+    }
+
+    /**
+     * Deletes the text file and parent directory.
+     *
+     * @param int $ID
+     * @return void
+     */
+    private function DeleteTextFile(int $ID): void
+    {
+        //Check for existing file
+        $file = IPS_GetKernelDir() . 'media/' . $ID . '/Protokoll.txt';
+        if (file_exists($file)) {
+            //Delete file
+            unlink($file);
+        }
+        //Delete dir
+        $path = IPS_GetKernelDir() . 'media/' . $ID;
+        if (is_dir($path)) {
+            rmdir($path);
+        }
+    }
+
+    /**
      * Creates a text file with data, data range is from a given start time to a given end time.
      *
      * @param int $StartTime
      * @param int $EndTime
-     * @return bool
+     * @return void
      * @throws Exception
      */
-    private function CreateTextFile(int $StartTime, int $EndTime): bool
+    private function GenerateTextFileData(int $StartTime, int $EndTime): void
     {
         //Header
         $title = $this->ReadPropertyString('TextFileTitle');
@@ -166,6 +209,9 @@ trait AP_Protocol
         $rows .= $period . "\n\n";
         //Data
         $dataset = $this->FetchData($StartTime, $EndTime);
+        if (empty($dataset)) {
+            $rows .= 'Es sind keine Einträge vorhanden!';
+        }
         if (count($dataset) == 1) {
             if (array_key_exists(0, $dataset)) {
                 if (array_key_exists('Value', $dataset[0])) {
@@ -178,48 +224,8 @@ trait AP_Protocol
         foreach ($dataset as $data) {
             $rows .= $data['Value'] . "\n";
         }
-        //Set content
-        return IPS_SetMediaContent($this->GetIDForIdent('TextFile'), base64_encode($rows));
-    }
-
-    /**
-     * Registers a media document.
-     *
-     * @param string $Ident
-     * @param string $Name
-     * @param string $Extension
-     * @param int $Position
-     * @return void
-     */
-    private function RegisterMediaDocument(string $Ident, string $Name, string $Extension, int $Position = 0): void
-    {
-        $this->RegisterMedia(5 /* Document */, $Ident, $Name, $Extension, $Position);
-    }
-
-    /**
-     * Registers media.
-     *
-     * @param int $Type
-     * @param string $Ident
-     * @param string $Name
-     * @param string $Extension
-     * @param int $Position
-     * @return bool
-     */
-    private function RegisterMedia(int $Type, string $Ident, string $Name, string $Extension, int $Position): bool
-    {
-        $result = true;
-        $mid = @IPS_GetObjectIDByIdent($Ident, $this->InstanceID);
-        if ($mid === false) {
-            $mid = IPS_CreateMedia($Type);
-            IPS_SetParent($mid, $this->InstanceID);
-            IPS_SetIdent($mid, $Ident);
-            IPS_SetName($mid, $Name);
-            IPS_SetPosition($mid, $Position);
-            IPS_SetHidden($mid, true);
-            $result = IPS_SetMediaFile($mid, 'media/Protokoll_ID' . $mid . '.' . $Extension, false);
-        }
-        return $result;
+        //Create text file
+        $this->CreateTextFile($rows);
     }
 
     /**

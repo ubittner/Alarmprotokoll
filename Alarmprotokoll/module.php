@@ -27,7 +27,7 @@ class Alarmprotokoll extends IPSModule
     //Constants
     private const MODULE_NAME = 'Alarmprotokoll';
     private const MODULE_PREFIX = 'AP';
-    private const MODULE_VERSION = '7.0-2, 06.04.2023';
+    private const MODULE_VERSION = '7.0-3, 08.04.2023';
     private const ARCHIVE_MODULE_GUID = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
     private const SMTP_MODULE_GUID = '{375EAF21-35EF-4BC4-83B3-C780FD8BD88A}';
 
@@ -103,9 +103,6 @@ class Alarmprotokoll extends IPSModule
             IPS_SetHidden($this->GetIDForIdent('MessageArchive'), true);
         }
 
-        ##### Media
-        $this->RegisterMediaDocument('TextFile', 'Protokoll', 'txt', 60);
-
         ########## Timers
 
         $this->RegisterTimer('CleanUpMessages', 0, self::MODULE_PREFIX . '_CleanUpMessages(' . $this->InstanceID . ');');
@@ -165,14 +162,17 @@ class Alarmprotokoll extends IPSModule
         IPS_SetHidden($this->GetIDForIdent('StateMessages'), !$this->ReadPropertyBoolean('EnableStateMessages'));
         IPS_SetHidden($this->GetIDForIdent('EventMessages'), !$this->ReadPropertyBoolean('EnableEventMessages'));
 
-        //Create protocol text file
+        //Generate text file
         $startTime = strtotime('first day of previous month midnight');
         $endTime = strtotime('first day of this month midnight') - 1;
-        $this->CreateTextFile($startTime, $endTime);
+        $this->GenerateTextFileData($startTime, $endTime);
     }
 
     public function Destroy()
     {
+        //Delete text file
+        $this->DeleteTextFile($this->InstanceID);
+
         //Never delete this line!
         parent::Destroy();
     }
