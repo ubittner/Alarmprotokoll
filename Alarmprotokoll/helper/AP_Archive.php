@@ -26,7 +26,7 @@ trait AP_Archive
         $result = false;
         $archiveID = $this->ReadPropertyInteger('Archive');
         $variableID = $this->GetIDForIdent('MessageArchive');
-        if ($archiveID > 1 && @IPS_ObjectExists($archiveID)) { //0 = main category, 1 = none
+        if ($archiveID > 1 && @IPS_ObjectExists($archiveID)) {
             if ($variableID > 1 && @IPS_ObjectExists($variableID)) {
                 $this->SendDebug(__FUNCTION__, 'Daten werden archiviert!', 0);
                 $result = AC_SetLoggingStatus($archiveID, $variableID, true);

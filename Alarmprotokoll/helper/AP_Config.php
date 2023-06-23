@@ -23,6 +23,22 @@ trait AP_Config
     }
 
     /**
+     * Expands or collapses the expansion panels.
+     *
+     * @param bool $State
+     * false =  collapse,
+     * true =   expand
+     *
+     * @return void
+     */
+    public function ExpandExpansionPanels(bool $State): void
+    {
+        for ($i = 1; $i <= 10; $i++) {
+            $this->UpdateFormField('Panel' . $i, 'expanded', $State);
+        }
+    }
+
+    /**
      * Modifies a configuration button.
      *
      * @param string $Field
@@ -33,7 +49,7 @@ trait AP_Config
     public function ModifyButton(string $Field, string $Caption, int $ObjectID): void
     {
         $state = false;
-        if ($ObjectID > 1 && @IPS_ObjectExists($ObjectID)) { //0 = main category, 1 = none
+        if ($ObjectID > 1 && @IPS_ObjectExists($ObjectID)) {
             $state = true;
         }
         $this->UpdateFormField($Field, 'caption', $Caption);
@@ -53,10 +69,34 @@ trait AP_Config
 
         ########## Elements
 
-        ##### Element: Info
+        //Configuration buttons
+        $form['elements'][0] =
+            [
+                'type'  => 'RowLayout',
+                'items' => [
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Konfiguration ausklappen',
+                        'onClick' => self::MODULE_PREFIX . '_ExpandExpansionPanels($id, true);'
+                    ],
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Konfiguration einklappen',
+                        'onClick' => self::MODULE_PREFIX . '_ExpandExpansionPanels($id, false);'
+                    ],
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Konfiguration neu laden',
+                        'onClick' => self::MODULE_PREFIX . '_ReloadConfig($id);'
+                    ]
+                ]
+            ];
 
-        $form['elements'][0] = [
+        //Info
+        $library = IPS_GetLibrary(self::LIBRARY_GUID);
+        $form['elements'][] = [
             'type'    => 'ExpansionPanel',
+            'name'    => 'Panel1',
             'caption' => 'Info',
             'items'   => [
                 [
@@ -76,8 +116,11 @@ trait AP_Config
                 ],
                 [
                     'type'    => 'Label',
-                    'name'    => 'ModuleVersion',
-                    'caption' => "Version:\t\t" . self::MODULE_VERSION
+                    'caption' => "Version:\t\t" . $library['Version'] . '-' . $library['Build'] . ', ' . date('d.m.Y', $library['Date'])
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => "Entwickler:\t" . $library['Author']
                 ],
                 [
                     'type'    => 'Label',
@@ -92,17 +135,17 @@ trait AP_Config
             ]
         ];
 
-        ##### Element: Archive
-
+        //Archive
         $id = $this->ReadPropertyInteger('Archive');
         $enabled = false;
-        if ($id > 1 && @IPS_ObjectExists($id)) { //0 = main category, 1 = none
+        if ($id > 1 && @IPS_ObjectExists($id)) {
             $enabled = true;
         }
 
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
             'caption' => 'Archivierung',
+            'name'    => 'Panel2',
             'items'   => [
                 [
                     'type'  => 'RowLayout',
@@ -113,11 +156,7 @@ trait AP_Config
                             'caption'  => 'Archiv',
                             'moduleID' => self::ARCHIVE_MODULE_GUID,
                             'width'    => '600px',
-                            'onChange' => self::MODULE_PREFIX . '_ModifyButton($id, "ArchiveConfigurationButton", "ID " . $Archive . " Instanzkonfiguration", $Archive);'
-                        ],
-                        [
-                            'type'    => 'Label',
-                            'caption' => ' '
+                            'onChange' => self::MODULE_PREFIX . '_ModifyButton($id, "ArchiveConfigurationButton", "ID " . $Archive . " verwalten", $Archive);'
                         ],
                         [
                             'type'     => 'OpenObjectButton',
@@ -138,12 +177,12 @@ trait AP_Config
             ]
         ];
 
-        ##### Element: Monthly protocol
+        //Monthly protocol
 
         //Monthly SMTP
         $monthlySMTP = $this->ReadPropertyInteger('MonthlySMTP');
         $enabled = false;
-        if ($monthlySMTP > 1 && @IPS_ObjectExists($monthlySMTP)) { //0 = main category, 1 = none
+        if ($monthlySMTP > 1 && @IPS_ObjectExists($monthlySMTP)) {
             $enabled = true;
         }
 
@@ -165,6 +204,7 @@ trait AP_Config
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
             'caption' => 'Protokoll',
+            'name'    => 'Panel3',
             'items'   => [
                 [
                     'type'    => 'Label',
@@ -354,23 +394,19 @@ trait AP_Config
                             'caption'  => 'SMTP Instanz',
                             'moduleID' => self::SMTP_MODULE_GUID,
                             'width'    => '600px',
-                            'onChange' => self::MODULE_PREFIX . '_ModifyButton($id, "MonthlySMTPConfigurationButton", "ID " . $MonthlySMTP . " Instanzkonfiguration", $MonthlySMTP);'
+                            'onChange' => self::MODULE_PREFIX . '_ModifyButton($id, "MonthlySMTPConfigurationButton", "ID " . $MonthlySMTP . " konfigurieren", $MonthlySMTP);'
+                        ],
+                        [
+                            'type'     => 'OpenObjectButton',
+                            'caption'  => 'ID ' . $monthlySMTP . ' konfigurieren',
+                            'name'     => 'MonthlySMTPConfigurationButton',
+                            'visible'  => $enabled,
+                            'objectID' => $monthlySMTP
                         ],
                         [
                             'type'    => 'Button',
                             'caption' => 'Neue Instanz erstellen',
                             'onClick' => self::MODULE_PREFIX . '_CreateSMTPInstance($id);'
-                        ],
-                        [
-                            'type'    => 'Label',
-                            'caption' => ' '
-                        ],
-                        [
-                            'type'     => 'OpenObjectButton',
-                            'caption'  => 'ID ' . $monthlySMTP . ' Instanzkonfiguration',
-                            'name'     => 'MonthlySMTPConfigurationButton',
-                            'visible'  => $enabled,
-                            'objectID' => $monthlySMTP
                         ]
                     ]
                 ],
@@ -426,27 +462,13 @@ trait AP_Config
             ]
         ];
 
-        ##### Element: Visualisation
+        //Visualisation
 
         $form['elements'][] = [
             'type'    => 'ExpansionPanel',
+            'name'    => 'Panel4',
             'caption' => 'Visualisierung',
             'items'   => [
-                [
-                    'type'    => 'Label',
-                    'caption' => 'WebFront',
-                    'bold'    => true,
-                    'italic'  => true
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => 'Anzeigeoptionen',
-                    'italic'  => true
-                ],
-                [
-                    'type'    => 'Label',
-                    'caption' => ' '
-                ],
                 [
                     'type'    => 'Label',
                     'caption' => 'Aktiv',
@@ -526,150 +548,61 @@ trait AP_Config
 
         ########## Actions
 
-        $form['actions'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Konfiguration',
-            'items'   => [
-                [
-                    'type'    => 'Button',
-                    'caption' => 'Neu laden',
-                    'onClick' => self::MODULE_PREFIX . '_ReloadConfig($id);'
-                ]
-            ]
-        ];
-
-        //Test center
-        $form['actions'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Schaltfunktionen',
-            'items'   => [
-                [
-                    'type' => 'TestCenter',
-                ]
-            ]
-        ];
-
-        //Messages
-        $form['actions'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Meldungen',
-            'items'   => [
-                [
-                    'type'    => 'PopupButton',
-                    'caption' => 'Alle Meldungen löschen',
-                    'popup'   => [
-                        'caption' => 'Wirklich alle Meldungen der Anzeige löschen?',
-                        'items'   => [
-                            [
-                                'type'    => 'Button',
-                                'caption' => 'Löschen',
-                                'onClick' => self::MODULE_PREFIX . '_DeleteAllMessages($id); echo "Alle Meldungen wurden gelöscht!";'
-                            ]
-                        ]
-                    ]
-                ],
-                [
-                    'type'    => 'PopupButton',
-                    'caption' => 'Alarmmeldungen löschen',
-                    'popup'   => [
-                        'caption' => 'Wirklich alle Alarmmeldungen der Anzeige löschen?',
-                        'items'   => [
-                            [
-                                'type'    => 'Button',
-                                'caption' => 'Löschen',
-                                'onClick' => self::MODULE_PREFIX . '_DeleteAlarmMessages($id); echo "Alle Alarmmeldungen wurden gelöscht!";'
-                            ]
-                        ]
-                    ]
-                ],
-                [
-                    'type'    => 'PopupButton',
-                    'caption' => 'Zustandsmeldungen löschen',
-                    'popup'   => [
-                        'caption' => 'Wirklich alle Zustandsmeldungen der Anzeige löschen?',
-                        'items'   => [
-                            [
-                                'type'    => 'Button',
-                                'caption' => 'Löschen',
-                                'onClick' => self::MODULE_PREFIX . '_DeleteStateMessages($id); echo "Alle Zustandsmeldungen wurden gelöscht!";'
-                            ]
-                        ]
-                    ]
-                ],
-                [
-                    'type'    => 'PopupButton',
-                    'caption' => 'Ereignismeldungen löschen',
-                    'popup'   => [
-                        'caption' => 'Wirklich alle Ereignismeldungen der Anzeige löschen?',
-                        'items'   => [
-                            [
-                                'type'    => 'Button',
-                                'caption' => 'Löschen',
-                                'onClick' => self::MODULE_PREFIX . '_DeleteEventMessages($id); echo "Alle Ereignismeldungen wurden gelöscht!";'
-                            ]
-                        ]
-                    ]
-                ],
-                [
-                    'type'    => 'PopupButton',
-                    'caption' => 'Daten bereinigen',
-                    'popup'   => [
-                        'caption' => 'Wirklich alle Daten bereinigen?',
-                        'items'   => [
-                            [
-                                'type'    => 'Button',
-                                'caption' => 'Bereinigen',
-                                'onClick' => self::MODULE_PREFIX . '_CleanUpMessages($id); echo "Alle Daten wurden bereinigt!";'
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
+        //Protocol
         $startTime = strtotime('first day of previous month midnight');
         $endTime = strtotime('first day of this month midnight') - 1;
         $startDate = '{"day":' . date('j', $startTime) . ',"month":' . date('n', $startTime) . ',"year":' . date('Y', $startTime) . '}';
         $endDate = '{"day":' . date('j', $endTime) . ', "month":' . date('n', $endTime) . ', "year":' . date('Y', $endTime) . '}';
-
-        //Protocols
-        $form['actions'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Protokoll',
-            'items'   => [
-                [
-                    'type'  => 'RowLayout',
-                    'items' => [
-                        [
-                            'type'    => 'SelectDate',
-                            'name'    => 'StartDate',
-                            'caption' => 'Datum von',
-                            'value'   => $startDate
-                        ],
-                        [
-                            'type'    => 'SelectDate',
-                            'name'    => 'EndDate',
-                            'caption' => 'Datum bis',
-                            'value'   => $endDate
-                        ],
-                        [
-                            'type'    => 'Label',
-                            'caption' => ' '
-                        ],
-                        [
-                            'type'    => 'Button',
-                            'caption' => 'Protokoll erstellen',
-                            'onClick' => self::MODULE_PREFIX . '_GenerateTextFileCustomData($id, $StartDate, $EndDate); echo "Die Textdatei wurde erstellt!";'
-                        ]
+        $form['actions'][] =
+            [
+                'type'  => 'RowLayout',
+                'items' => [
+                    [
+                        'type'    => 'SelectDate',
+                        'name'    => 'StartDate',
+                        'caption' => 'Datum von',
+                        'value'   => $startDate
+                    ],
+                    [
+                        'type'    => 'SelectDate',
+                        'name'    => 'EndDate',
+                        'caption' => 'Datum bis',
+                        'value'   => $endDate
+                    ],
+                    [
+                        'type'    => 'Label',
+                        'caption' => ' '
+                    ],
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Protokoll erstellen',
+                        'onClick' => self::MODULE_PREFIX . '_GenerateTextFileCustomData($id, $StartDate, $EndDate);' . self::MODULE_PREFIX . '_UIShowMessage($id, "Die Textdatei wurde erfolgreich erstellt!");'
+                    ],
+                    [
+                        'type'    => 'Button',
+                        'caption' => 'Protokoll versenden',
+                        'onClick' => self::MODULE_PREFIX . '_SendProtocol($id); ' . self::MODULE_PREFIX . '_UIShowMessage($id, "Das Protokoll wurde versendet!");'
                     ]
-                ],
-                [
-                    'type'    => 'Button',
-                    'caption' => 'Protokoll versenden',
-                    'onClick' => self::MODULE_PREFIX . '_SendProtocol($id); echo "Protokoll wurde versendet!";'
                 ]
-            ]
-        ];
+            ];
+
+        $form['actions'][] =
+            [
+                'type'    => 'Label',
+                'caption' => ' '
+            ];
+
+        //Test center
+        $form['actions'][] =
+            [
+                'type' => 'TestCenter'
+            ];
+
+        $form['actions'][] =
+            [
+                'type'    => 'Label',
+                'caption' => ' '
+            ];
 
         //Registered references
         $registeredReferences = [];
@@ -686,44 +619,6 @@ trait AP_Config
                 'Name'     => $name,
                 'rowColor' => $rowColor];
         }
-
-        $form['actions'][] = [
-            'type'    => 'ExpansionPanel',
-            'caption' => 'Registrierte Referenzen',
-            'items'   => [
-                [
-                    'type'     => 'List',
-                    'name'     => 'RegisteredReferences',
-                    'rowCount' => 10,
-                    'sort'     => [
-                        'column'    => 'ObjectID',
-                        'direction' => 'ascending'
-                    ],
-                    'columns' => [
-                        [
-                            'caption' => 'ID',
-                            'name'    => 'ObjectID',
-                            'width'   => '150px',
-                            'onClick' => self::MODULE_PREFIX . '_ModifyButton($id, "RegisteredReferencesConfigurationButton", "ID " . $RegisteredReferences["ObjectID"] . " aufrufen", $RegisteredReferences["ObjectID"]);'
-                        ],
-                        [
-                            'caption' => 'Name',
-                            'name'    => 'Name',
-                            'width'   => '300px',
-                            'onClick' => self::MODULE_PREFIX . '_ModifyButton($id, "RegisteredReferencesConfigurationButton", "ID " . $RegisteredReferences["ObjectID"] . " aufrufen", $RegisteredReferences["ObjectID"]);'
-                        ]
-                    ],
-                    'values' => $registeredReferences
-                ],
-                [
-                    'type'     => 'OpenObjectButton',
-                    'name'     => 'RegisteredReferencesConfigurationButton',
-                    'caption'  => 'Aufrufen',
-                    'visible'  => false,
-                    'objectID' => 0
-                ]
-            ]
-        ];
 
         //Registered messages
         $registeredMessages = [];
@@ -755,13 +650,132 @@ trait AP_Config
                 'rowColor'           => $rowColor];
         }
 
+        //Developer area
         $form['actions'][] = [
             'type'    => 'ExpansionPanel',
-            'caption' => 'Registrierte Nachrichten',
+            'caption' => 'Entwicklerbereich',
             'items'   => [
+                [
+                    'type'  => 'RowLayout',
+                    'items' => [
+                        [
+                            'type'    => 'PopupButton',
+                            'caption' => 'Alle Meldungen löschen',
+                            'popup'   => [
+                                'caption' => 'Wirklich alle Meldungen der Anzeige löschen?',
+                                'items'   => [
+                                    [
+                                        'type'    => 'Button',
+                                        'caption' => 'Löschen',
+                                        'onClick' => self::MODULE_PREFIX . '_DeleteAllMessages($id);' . self::MODULE_PREFIX . '_UIShowMessage($id, "Es wurden alle Meldungen gelöscht!");'
+                                    ]
+                                ]
+                            ]
+                        ],
+                        [
+                            'type'    => 'PopupButton',
+                            'caption' => 'Alarmmeldungen löschen',
+                            'popup'   => [
+                                'caption' => 'Wirklich alle Alarmmeldungen der Anzeige löschen?',
+                                'items'   => [
+                                    [
+                                        'type'    => 'Button',
+                                        'caption' => 'Löschen',
+                                        'onClick' => self::MODULE_PREFIX . '_DeleteAlarmMessages($id);' . self::MODULE_PREFIX . '_UIShowMessage($id, "Es wurden alle Alarmmeldungen gelöscht!");'
+                                    ]
+                                ]
+                            ]
+                        ],
+                        [
+                            'type'    => 'PopupButton',
+                            'caption' => 'Zustandsmeldungen löschen',
+                            'popup'   => [
+                                'caption' => 'Wirklich alle Zustandsmeldungen der Anzeige löschen?',
+                                'items'   => [
+                                    [
+                                        'type'    => 'Button',
+                                        'caption' => 'Löschen',
+                                        'onClick' => self::MODULE_PREFIX . '_DeleteStateMessages($id);' . self::MODULE_PREFIX . '_UIShowMessage($id, "Es wurden alle Zustandsmeldungen gelöscht!");'
+                                    ]
+                                ]
+                            ]
+                        ],
+                        [
+                            'type'    => 'PopupButton',
+                            'caption' => 'Ereignismeldungen löschen',
+                            'popup'   => [
+                                'caption' => 'Wirklich alle Ereignismeldungen der Anzeige löschen?',
+                                'items'   => [
+                                    [
+                                        'type'    => 'Button',
+                                        'caption' => 'Löschen',
+                                        'onClick' => self::MODULE_PREFIX . '_DeleteEventMessages($id);' . self::MODULE_PREFIX . '_UIShowMessage($id, "Es wurden alle Ereignismeldungen gelöscht!");'
+                                    ]
+                                ]
+                            ]
+                        ],
+                        [
+                            'type'    => 'PopupButton',
+                            'caption' => 'Archivdaten bereinigen',
+                            'name'    => 'DataCleanUpConfigurationButton',
+                            'visible' => $enabled,
+                            'popup'   => [
+                                'caption' => 'Wirklich alle Archivdaten bereinigen?',
+                                'items'   => [
+                                    [
+                                        'type'    => 'Button',
+                                        'caption' => 'Bereinigen',
+                                        'onClick' => self::MODULE_PREFIX . '_CleanUpMessages($id);' . self::MODULE_PREFIX . '_UIShowMessage($id, "Es wurden alle Daten bereinigt!");'
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
+                [
+                    'type'     => 'List',
+                    'name'     => 'RegisteredReferences',
+                    'caption'  => 'Registrierte Referenzen',
+                    'rowCount' => 10,
+                    'sort'     => [
+                        'column'    => 'ObjectID',
+                        'direction' => 'ascending'
+                    ],
+                    'columns' => [
+                        [
+                            'caption' => 'ID',
+                            'name'    => 'ObjectID',
+                            'width'   => '150px',
+                            'onClick' => self::MODULE_PREFIX . '_ModifyButton($id, "RegisteredReferencesConfigurationButton", "ID " . $RegisteredReferences["ObjectID"] . " aufrufen", $RegisteredReferences["ObjectID"]);'
+                        ],
+                        [
+                            'caption' => 'Name',
+                            'name'    => 'Name',
+                            'width'   => '300px',
+                            'onClick' => self::MODULE_PREFIX . '_ModifyButton($id, "RegisteredReferencesConfigurationButton", "ID " . $RegisteredReferences["ObjectID"] . " aufrufen", $RegisteredReferences["ObjectID"]);'
+                        ]
+                    ],
+                    'values' => $registeredReferences
+                ],
+                [
+                    'type'     => 'OpenObjectButton',
+                    'name'     => 'RegisteredReferencesConfigurationButton',
+                    'caption'  => 'Aufrufen',
+                    'visible'  => false,
+                    'objectID' => 0
+                ],
+                [
+                    'type'    => 'Label',
+                    'caption' => ' '
+                ],
                 [
                     'type'     => 'List',
                     'name'     => 'RegisteredMessages',
+                    'caption'  => 'Registrierte Nachrichten',
                     'rowCount' => 10,
                     'sort'     => [
                         'column'    => 'ObjectID',
@@ -802,6 +816,24 @@ trait AP_Config
                 ]
             ]
         ];
+
+        $form['actions'][] =
+            [
+                'type'    => 'PopupAlert',
+                'name'    => 'InfoMessage',
+                'visible' => false,
+                'popup'   => [
+                    'closeCaption' => 'OK',
+                    'items'        => [
+                        [
+                            'type'    => 'Label',
+                            'name'    => 'InfoMessageLabel',
+                            'caption' => '',
+                            'visible' => true
+                        ]
+                    ]
+                ]
+            ];
 
         ########## Status
 
