@@ -56,7 +56,7 @@ Nachfolgendes Beispiel protokolliert eine Ereignismeldung.
 
 #### 5.1 Meldungen aktualisieren
 
-```
+```text
 AP_UpdateMessages(integer INSTANCE_ID, string MESSAGE_TEXT, integer MESSAGE_TYPE);
 ```
 
@@ -70,14 +70,15 @@ Der Befehl liefert keinen Rückgabewert.
 |                | Meldungstyp    | 1 = Statusmeldung   | 
 |                | Meldungstyp    | 2 = Alarmmeldung    | 
 
-Beispiel:
-> AP_UpdateMessages(12345, 'Dies ist eine Alarmmeldung', 2);
-
+**Beispiel**:
+```php
+AP_UpdateMessages(12345, 'Dies ist eine Alarmmeldung', 2);
+```
 ---
 
 #### 5.2 Monatsprotokoll versenden
 
-```
+```text
 AP_SendMonthlyProtocol(integer INSTANCE_ID, boolean CHECK_DAY, integer PROTOCOL_PERIOD);
 ```
 
@@ -93,7 +94,9 @@ Der Befehl liefert keinen Rückgabewert.
 |                   |                           | 2 = Vorvormonat       |
 
 
-Beispiel:
-> AP_SendMonthlyProtocol(12345, 'Hinweis', false, 0);
+**Beispiel**:
+```php
+AP_SendMonthlyProtocol(12345, 'Hinweis', false, 0);
+```
 
 ---
