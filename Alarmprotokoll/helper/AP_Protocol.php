@@ -130,7 +130,7 @@ trait AP_Protocol
             return;
         }
         $monthlySMTP = $this->ReadPropertyInteger('MonthlySMTP');
-        if ($monthlySMTP > 1 && @IPS_ObjectExists($monthlySMTP)) { //0 = main category, 1 = none
+        if ($monthlySMTP > 1 && @IPS_ObjectExists($monthlySMTP)) {
             $mailSubject = $this->ReadPropertyString('MonthlyProtocolSubject');
             $mailText = $this->ReadPropertyString('MonthlyProtocolText') . "\n\n";
             $filename = IPS_GetKernelDir() . 'media/' . $this->InstanceID . '/Protokoll.txt';
