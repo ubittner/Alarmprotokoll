@@ -27,7 +27,6 @@ class Alarmprotokoll extends IPSModule
     //Constants
     private const LIBRARY_GUID = '{60C35BE7-ED7C-AD82-EFCA-8B2AD23579F6}';
     private const MODULE_GUID = '{66BDB59B-E80F-E837-6640-005C32D5FC24}';
-    private const MODULE_NAME = 'Alarmprotokoll';
     private const MODULE_PREFIX = 'AP';
     private const ARCHIVE_MODULE_GUID = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
     private const SMTP_MODULE_GUID = '{375EAF21-35EF-4BC4-83B3-C780FD8BD88A}';
