@@ -1,15 +1,15 @@
 <?php
 
 /**
- * @project       Alarmprotokoll/Alarmprotokoll
+ * @project       Alarmprotokoll/Alarmprotokoll/
  * @file          module.php
  * @author        Ulrich Bittner
- * @copyright     2022 Ulrich Bittner
+ * @copyright     2023 Ulrich Bittner
  * @license       https://creativecommons.org/licenses/by-nc-sa/4.0/ CC BY-NC-SA 4.0
  */
 
-/** @noinspection PhpRedundantMethodOverrideInspection */
 /** @noinspection PhpUnhandledExceptionInspection */
+/** @noinspection SpellCheckingInspection */
 /** @noinspection PhpUnused */
 
 declare(strict_types=1);
@@ -20,7 +20,7 @@ class Alarmprotokoll extends IPSModule
 {
     //Helper
     use AP_Archive;
-    use AP_Config;
+    use AP_ConfigurationForm;
     use AP_Messages;
     use AP_Protocol;
 
